@@ -24,9 +24,10 @@ export interface Alert {
 }
 
 export interface Advisory {
-  condition: string;
-  recommendations: string[];
-  explanation: string;
+  title: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high';
+  timestamp: string;
 }
 
 export class HabitatSimulator {
@@ -158,77 +159,5 @@ export class HabitatSimulator {
     }
 
     return alerts;
-  }
-
-  generateAdvisory(data: EnvironmentalData, alerts: Alert[]): Advisory | null {
-    if (alerts.length === 0) return null;
-
-    const criticalAlerts = alerts.filter(a => a.severity === 'critical');
-    
-    if (data.oxygen < (this.mode === 'mars' ? 19.5 : 60) && data.power < 50) {
-      return {
-        condition: this.mode === 'mars' 
-          ? 'Oxygen depletion with insufficient power reserves'
-          : 'Air quality degradation with insufficient power reserves',
-        recommendations: [
-          'Reduce non-critical operations immediately',
-          'Prioritize life-support systems',
-          'Dim lighting and reduce HVAC load',
-          'Activate emergency oxygen/filtration reserves',
-        ],
-        explanation: this.mode === 'mars'
-          ? 'Current oxygen levels cannot sustain crew safety. With limited power, CO2 scrubbers may fail. Immediate intervention required to prevent life-threatening conditions.'
-          : 'Poor air quality combined with low power threatens ventilation systems. Without action, indoor air could become hazardous within hours.',
-      };
-    }
-
-    if (data.temperature > 30 && data.power > 60) {
-      return {
-        condition: 'Thermal regulation failure with available power',
-        recommendations: [
-          'Activate enhanced cooling systems',
-          'Close solar-facing vents/windows',
-          'Pause heat-intensive equipment',
-          'Redirect power to thermal management',
-        ],
-        explanation: 'Elevated temperatures stress both equipment and crew. With sufficient power available, aggressive cooling measures can prevent cascade failures.',
-      };
-    }
-
-    if (data.power < 30) {
-      return {
-        condition: 'Critical power deficit',
-        recommendations: [
-          'Switch to emergency low-power mode',
-          'Defer all non-essential operations',
-          'Prepare for potential system hibernation',
-          'Monitor solar/grid recovery status',
-        ],
-        explanation: 'Power reserves approaching minimum safe levels. All systems must enter conservation mode to maintain critical life support until power generation recovers.',
-      };
-    }
-
-    if (criticalAlerts.length > 0) {
-      return {
-        condition: 'Multiple critical systems compromised',
-        recommendations: [
-          'Activate emergency protocols',
-          'Prioritize life-support systems',
-          'Prepare for potential evacuation',
-          'Contact ground control/support',
-        ],
-        explanation: 'Multiple simultaneous failures indicate systemic instability. Immediate coordinated response required across all habitat systems.',
-      };
-    }
-
-    return {
-      condition: 'Minor stability degradation',
-      recommendations: [
-        'Monitor trending parameters closely',
-        'Perform preventive maintenance checks',
-        'Review recent operational changes',
-      ],
-      explanation: 'Current conditions are suboptimal but manageable. Proactive monitoring and minor adjustments should prevent escalation.',
-    };
   }
 }
