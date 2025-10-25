@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, Shield, Eye, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
@@ -83,59 +84,61 @@ export const RecommendationsPanel = ({
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {recommendations.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            All systems operating normally. No recommendations at this time.
-          </p>
-        ) : (
-          recommendations.map((rec, index) => (
-            <div
-              key={index}
-              className={`p-3 rounded-lg border-2 transition-all ${
-                completed.has(index) 
-                  ? 'bg-muted/50 border-muted opacity-60' 
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  {getCategoryIcon(rec.category)}
-                  <Badge variant={getPriorityColor(rec.priority) as any}>
-                    {rec.priority}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {rec.category}
-                  </span>
+      <ScrollArea className="h-[300px]">
+        <CardContent className="space-y-3">
+          {recommendations.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              All systems operating normally. No recommendations at this time.
+            </p>
+          ) : (
+            recommendations.map((rec, index) => (
+              <div
+                key={index}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  completed.has(index) 
+                    ? 'bg-muted/50 border-muted opacity-60' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    {getCategoryIcon(rec.category)}
+                    <Badge variant={getPriorityColor(rec.priority) as any}>
+                      {rec.priority}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {rec.category}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleComplete(index)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <CheckCircle2 
+                      className={`h-4 w-4 ${
+                        completed.has(index) 
+                          ? 'text-green-500 fill-green-500' 
+                          : 'text-muted-foreground'
+                      }`}
+                    />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleComplete(index)}
-                  className="h-6 w-6 p-0"
-                >
-                  <CheckCircle2 
-                    className={`h-4 w-4 ${
-                      completed.has(index) 
-                        ? 'text-green-500 fill-green-500' 
-                        : 'text-muted-foreground'
-                    }`}
-                  />
-                </Button>
+                <p className={`text-sm font-medium mb-1 ${completed.has(index) ? 'line-through' : ''}`}>
+                  {rec.action}
+                </p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  <strong>Impact:</strong> {rec.impact}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Timeframe:</strong> {rec.timeframe}
+                </p>
               </div>
-              <p className={`text-sm font-medium mb-1 ${completed.has(index) ? 'line-through' : ''}`}>
-                {rec.action}
-              </p>
-              <p className="text-xs text-muted-foreground mb-2">
-                <strong>Impact:</strong> {rec.impact}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                <strong>Timeframe:</strong> {rec.timeframe}
-              </p>
-            </div>
-          ))
-        )}
-      </CardContent>
+            ))
+          )}
+        </CardContent>
+      </ScrollArea>
     </Card>
   );
 };
