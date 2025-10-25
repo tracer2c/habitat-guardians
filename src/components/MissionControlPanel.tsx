@@ -23,16 +23,28 @@ export const MissionControlPanel = () => {
     const mission = missions.find(m => m.id === id);
     if (!mission) return;
 
+    console.log('Available rovers:', rovers.map(r => ({
+      name: r.name,
+      status: r.status,
+      has_task: !!r.current_task_id,
+      current_task_id: r.current_task_id
+    })));
+
     // Find an available rover (idle or charging, not active on another mission)
-    const availableRover = rovers.find(r => 
-      (r.status === 'idle' || r.status === 'charging') && 
-      !r.current_task_id
-    );
+    const availableRover = rovers.find(r => {
+      const isAvailableStatus = r.status === 'idle' || r.status === 'charging';
+      const hasNoTask = !r.current_task_id;
+      console.log(`Checking ${r.name}: status=${r.status}, isAvailable=${isAvailableStatus}, hasNoTask=${hasNoTask}`);
+      return isAvailableStatus && hasNoTask;
+    });
     
     if (!availableRover) {
-      toast.error("No rovers available - all rovers are busy or on missions");
+      console.error('No available rovers found!');
+      toast.error("No rovers available - all rovers are busy or on missions. Please wait or check rover status.");
       return;
     }
+
+    console.log('Selected rover:', availableRover.name);
 
     // Update mission status first
     const success = await updateMission(id, { 
