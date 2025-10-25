@@ -2,3 +2,9 @@ project_id = "wkxvruapnvflgykzqtgp"
 
 [functions.simulate-environment]
 verify_jwt = false
+
+[functions.generate-recommendations]
+verify_jwt = false
+
+[functions.generate-missions]
+verify_jwt = false

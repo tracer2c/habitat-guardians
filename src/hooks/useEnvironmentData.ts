@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { EnvironmentalData, HabitatMode, Alert, Advisory } from '@/lib/dataSimulator';
 import { useToast } from '@/hooks/use-toast';
+import { Recommendation } from '@/components/RecommendationsPanel';
 
 export const useEnvironmentData = (
   mode: HabitatMode, 
@@ -12,6 +13,8 @@ export const useEnvironmentData = (
   const [currentReading, setCurrentReading] = useState<EnvironmentalData | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [advisory, setAdvisory] = useState<Advisory | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false);
   const { toast } = useToast();
 
   // Fetch initial data
@@ -98,6 +101,31 @@ export const useEnvironmentData = (
     } catch (error) {
       console.error('Error generating advisory:', error);
       // Don't show error toast for advisory generation to avoid spam
+    }
+  }, [mode]);
+
+  // Generate AI recommendations
+  const generateRecommendations = useCallback(async (reading: EnvironmentalData, recentAlerts: Alert[], predictions?: any[]) => {
+    setIsGeneratingRecommendations(true);
+    try {
+      const { data: recData, error } = await supabase.functions.invoke('generate-recommendations', {
+        body: {
+          mode,
+          currentReading: reading,
+          alerts: recentAlerts,
+          predictions: predictions || []
+        },
+      });
+
+      if (error) throw error;
+      
+      if (recData?.recommendations) {
+        setRecommendations(recData.recommendations);
+      }
+    } catch (error) {
+      console.error('Error generating recommendations:', error);
+    } finally {
+      setIsGeneratingRecommendations(false);
     }
   }, [mode]);
 
@@ -233,6 +261,9 @@ export const useEnvironmentData = (
     currentReading,
     alerts,
     advisory,
+    recommendations,
+    isGeneratingRecommendations,
+    generateRecommendations,
     triggerSimulation,
   };
 };

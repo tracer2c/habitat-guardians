@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      dashboard_layouts: {
+        Row: {
+          created_at: string | null
+          id: string
+          layout_order: number[] | null
+          locations: Json
+          mode: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          layout_order?: number[] | null
+          locations: Json
+          mode: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          layout_order?: number[] | null
+          locations?: Json
+          mode?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       environmental_readings: {
         Row: {
           co2_level: number | null
@@ -64,6 +94,98 @@ export type Database = {
           timestamp?: string
         }
         Relationships: []
+      }
+      mars_missions: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          deadline: string | null
+          dependencies: Json | null
+          description: string | null
+          estimated_duration: number | null
+          id: string
+          metadata: Json | null
+          priority: string
+          status: string
+          title: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          dependencies?: Json | null
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          metadata?: Json | null
+          priority: string
+          status?: string
+          title: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          dependencies?: Json | null
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          metadata?: Json | null
+          priority?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      rover_status: {
+        Row: {
+          battery_level: number | null
+          current_task_id: string | null
+          id: string
+          last_updated: string | null
+          location_x: number | null
+          location_y: number | null
+          name: string
+          rover_id: string
+          status: string
+        }
+        Insert: {
+          battery_level?: number | null
+          current_task_id?: string | null
+          id?: string
+          last_updated?: string | null
+          location_x?: number | null
+          location_y?: number | null
+          name: string
+          rover_id: string
+          status: string
+        }
+        Update: {
+          battery_level?: number | null
+          current_task_id?: string | null
+          id?: string
+          last_updated?: string | null
+          location_x?: number | null
+          location_y?: number | null
+          name?: string
+          rover_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rover_status_current_task_id_fkey"
+            columns: ["current_task_id"]
+            isOneToOne: false
+            referencedRelation: "mars_missions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_events: {
         Row: {

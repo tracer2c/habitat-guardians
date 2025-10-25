@@ -7,19 +7,34 @@ import { EnvironmentChart } from "@/components/EnvironmentChart";
 import { MissionLog } from "@/components/MissionLog";
 import { PredictionsPanel } from "@/components/PredictionsPanel";
 import { AnomalyPanel } from "@/components/AnomalyPanel";
+import { RecommendationsPanel } from "@/components/RecommendationsPanel";
+import { MissionControlPanel } from "@/components/MissionControlPanel";
+import { MultiLocationDashboard } from "@/components/MultiLocationDashboard";
 import { LocationSelector, LOCATIONS, Location } from "@/components/LocationSelector";
 import { HabitatMode } from "@/lib/dataSimulator";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { usePredictions } from "@/hooks/usePredictions";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Database } from "lucide-react";
+import { Play, Pause, Database, Rocket, Grid3x3 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const Index = () => {
   const [mode, setMode] = useState<HabitatMode>("mars");
   const [isRunning, setIsRunning] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location>(LOCATIONS[0]);
+  const [showMultiLocation, setShowMultiLocation] = useState(false);
+  const [showMissionControl, setShowMissionControl] = useState(false);
 
-  const { data, currentReading, alerts, advisory, triggerSimulation } = useEnvironmentData(
+  const { 
+    data, 
+    currentReading, 
+    alerts, 
+    advisory, 
+    recommendations,
+    isGeneratingRecommendations,
+    generateRecommendations,
+    triggerSimulation 
+  } = useEnvironmentData(
     mode,
     isRunning,
     mode === 'earth' ? selectedLocation : undefined
@@ -30,6 +45,7 @@ const Index = () => {
   const handleModeChange = (newMode: HabitatMode) => {
     setMode(newMode);
     setIsRunning(false);
+    setShowMultiLocation(false);
   };
 
   useEffect(() => {
@@ -37,6 +53,18 @@ const Index = () => {
       triggerSimulation(selectedLocation);
     }
   }, [selectedLocation, mode]);
+
+  // Generate recommendations when conditions warrant
+  useEffect(() => {
+    if (currentReading && alerts.length > 0) {
+      const hasHighSeverity = alerts.some(a => a.severity === 'critical' || a.severity === 'warning');
+      const lowStability = (currentReading.stabilityScore || 0) < 70;
+      
+      if (hasHighSeverity || lowStability || currentReading.is_crisis) {
+        generateRecommendations(currentReading, alerts, predictions);
+      }
+    }
+  }, [currentReading?.timestamp, alerts.length]);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -60,11 +88,38 @@ const Index = () => {
         </div>
         <div className="flex items-center gap-4">
           <ModeToggle mode={mode} onModeChange={handleModeChange} />
-          {mode === 'earth' && (
+          {mode === 'earth' && !showMultiLocation && (
             <LocationSelector 
               selectedLocation={selectedLocation} 
               onLocationChange={setSelectedLocation} 
             />
+          )}
+          {mode === 'earth' && (
+            <Button
+              variant={showMultiLocation ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowMultiLocation(!showMultiLocation)}
+              className="gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              {showMultiLocation ? 'Single View' : 'Multi-Location'}
+            </Button>
+          )}
+          {mode === 'mars' && (
+            <Dialog open={showMissionControl} onOpenChange={setShowMissionControl}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Rocket className="h-4 w-4" />
+                  Mission Control
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Mars Mission Control</DialogTitle>
+                </DialogHeader>
+                <MissionControlPanel />
+              </DialogContent>
+            </Dialog>
           )}
           <Button
             variant="outline"
@@ -198,8 +253,9 @@ const Index = () => {
         <AlertsPanel alerts={alerts} />
         {advisory && <AdvisoryPanel advisory={advisory} />}
       </div>
+      )}
 
-      {/* Mission Log */}
+      {/* Mission Log - Always show */}
       <MissionLog entries={alerts.slice(0, 8).map(a => ({
         timestamp: a.timestamp,
         message: a.message,
