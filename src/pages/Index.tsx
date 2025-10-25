@@ -228,20 +228,20 @@ const Index = () => {
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2 space-y-6">
               <EnvironmentChart data={data.slice(-20)} mode={mode} />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-card border border-border rounded-lg p-6 min-h-[120px] flex flex-col justify-between">
-                  <p className="text-sm text-muted-foreground">Pressure</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between">
+                  <p className="text-sm text-muted-foreground mb-2">Pressure</p>
                   <p className="text-3xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
                 </div>
                 {mode === 'earth' && currentReading?.co2_level && (
-                  <div className="bg-card border border-border rounded-lg p-6 min-h-[120px] flex flex-col justify-between">
-                    <p className="text-sm text-muted-foreground">CO₂ Level</p>
+                  <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between">
+                    <p className="text-sm text-muted-foreground mb-2">CO₂ Level</p>
                     <p className="text-3xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
                   </div>
                 )}
                 {mode === 'mars' && currentReading?.radiation && (
-                  <div className="bg-card border border-border rounded-lg p-6 min-h-[120px] flex flex-col justify-between">
-                    <p className="text-sm text-muted-foreground">Radiation</p>
+                  <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between">
+                    <p className="text-sm text-muted-foreground mb-2">Radiation</p>
                     <p className="text-3xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
                   </div>
                 )}
