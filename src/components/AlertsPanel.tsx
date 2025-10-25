@@ -28,7 +28,7 @@ export const AlertsPanel = ({ alerts }: AlertsPanelProps) => {
           <span className="text-sm">All systems nominal</span>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <div className="space-y-2 h-[400px] overflow-y-auto">
           {alerts.map((alert, idx) => (
             <div
               key={`${alert.id}-${idx}`}

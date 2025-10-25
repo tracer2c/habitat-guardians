@@ -267,7 +267,7 @@ const Index = () => {
           </div>
 
           {/* Secondary Grid */}
-          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
             <AlertsPanel alerts={alerts} />
             {mode === 'earth' ? (
               <MarsInvestigationPanel />

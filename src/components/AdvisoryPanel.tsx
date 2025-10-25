@@ -52,7 +52,7 @@ export const AdvisoryPanel = ({ advisory }: AdvisoryPanelProps) => {
   const Icon = style.icon;
 
   return (
-    <div className={`flex flex-col gap-4 p-4 bg-card rounded-lg border ${style.border} ${style.glow}`}>
+    <div className={`flex flex-col gap-4 p-4 bg-card rounded-lg border min-h-[400px] ${style.border} ${style.glow}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon className={`h-5 w-5 ${style.iconColor}`} />
