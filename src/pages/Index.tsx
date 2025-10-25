@@ -225,24 +225,24 @@ const Index = () => {
       {/* Main Content Grid - Only show in single view */}
       {!showMultiLocation && (
         <>
-          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-            <div className="lg:col-span-8 space-y-6">
+          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="space-y-6">
               <EnvironmentChart data={data.slice(-20)} mode={mode} />
-              <div className="grid grid-cols-2 gap-6 auto-rows-fr">
-                <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between min-w-[200px] flex-1 min-h-[120px]">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-card border border-border rounded-lg p-4 flex flex-col justify-between">
                   <p className="text-sm text-muted-foreground mb-2">Pressure</p>
-                  <p className="text-3xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
+                  <p className="text-2xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
                 </div>
                 {mode === 'earth' && currentReading?.co2_level && (
-                  <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between min-w-[200px] flex-1 min-h-[120px]">
+                  <div className="bg-card border border-border rounded-lg p-4 flex flex-col justify-between">
                     <p className="text-sm text-muted-foreground mb-2">CO₂ Level</p>
-                    <p className="text-3xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
+                    <p className="text-2xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
                   </div>
                 )}
                 {mode === 'mars' && currentReading?.radiation && (
-                  <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between min-w-[200px] flex-1 min-h-[120px]">
+                  <div className="bg-card border border-border rounded-lg p-4 flex flex-col justify-between">
                     <p className="text-sm text-muted-foreground mb-2">Radiation</p>
-                    <p className="text-3xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
+                    <p className="text-2xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
                   </div>
                 )}
               </div>
@@ -254,7 +254,7 @@ const Index = () => {
               )}
             </div>
 
-            <div className="lg:col-span-4 space-y-6">
+            <div className="space-y-6">
               <RecommendationsPanel 
                 recommendations={recommendations}
                 onRefresh={() => currentReading && generateRecommendations(currentReading, alerts, predictions)}

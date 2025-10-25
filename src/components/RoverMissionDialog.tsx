@@ -120,16 +120,19 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
     });
   };
 
-  const missionLogs = logs.filter(log => log.metadata?.mission_id === mission.id);
+  const missionLogs = logs.filter(log => log.metadata?.mission_id === mission.id).reverse();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[600px]">
+      <DialogContent className="max-w-2xl max-h-[600px]" aria-describedby="mission-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
             Mission Progress: {mission.title}
           </DialogTitle>
+          <p id="mission-dialog-description" className="sr-only">
+            View real-time mission progress and rover telemetry
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">
