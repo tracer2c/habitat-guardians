@@ -253,6 +253,7 @@ const Index = () => {
                   <p className="text-lg font-bold text-destructive">{currentReading.crisis_type?.replace('_', ' ').toUpperCase()}</p>
                 </div>
               )}
+              <AlertsPanel alerts={alerts} />
             </div>
 
             <div className="space-y-6">
@@ -266,15 +267,16 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Secondary Grid */}
-          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-start">
-            <AlertsPanel alerts={alerts} />
-            {mode === 'earth' ? (
-              <MarsInvestigationPanel />
-            ) : (
-              advisory && <AdvisoryPanel advisory={advisory} />
-            )}
-          </div>
+          {/* Secondary Grid - Advisory/Investigation Panel */}
+          {(mode === 'earth' || advisory) && (
+            <div className="max-w-[1400px] mx-auto mb-8">
+              {mode === 'earth' ? (
+                <MarsInvestigationPanel />
+              ) : (
+                advisory && <AdvisoryPanel advisory={advisory} />
+              )}
+            </div>
+          )}
         </>
       )}
 
