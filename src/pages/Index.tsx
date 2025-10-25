@@ -223,7 +223,7 @@ const Index = () => {
       {/* Main Content Grid - Only show in single view */}
       {!showMultiLocation && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2 space-y-6">
               <EnvironmentChart data={data.slice(-20)} mode={mode} />
               <div className="grid grid-cols-2 gap-4">
@@ -264,7 +264,7 @@ const Index = () => {
           </div>
 
           {/* Secondary Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <AlertsPanel alerts={alerts} />
             {advisory && <AdvisoryPanel advisory={advisory} />}
           </div>
@@ -272,15 +272,17 @@ const Index = () => {
       )}
 
       {/* Mission Log / Rover Activity - Always show */}
-      {mode === 'mars' ? (
-        <RoverActivityLog />
-      ) : (
-        <MissionLog entries={alerts.slice(0, 8).map(a => ({
-          timestamp: a.timestamp,
-          message: a.message,
-          type: a.severity as 'info' | 'warning' | 'critical'
-        }))} />
-      )}
+      <div className="max-w-7xl mx-auto">
+        {mode === 'mars' ? (
+          <RoverActivityLog />
+        ) : (
+          <MissionLog entries={alerts.slice(0, 8).map(a => ({
+            timestamp: a.timestamp,
+            message: a.message,
+            type: a.severity as 'info' | 'warning' | 'critical'
+          }))} />
+        )}
+      </div>
     </div>
   );
 };

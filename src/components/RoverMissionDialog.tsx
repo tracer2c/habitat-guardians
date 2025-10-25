@@ -60,21 +60,21 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
   const simulateMissionLogs = async () => {
     const missionLogs = generateMissionSequence(mission, rover);
     const totalSteps = missionLogs.length;
-    const batteryDrainPerStep = 5; // 5% per step
+    const batteryDrainPerStep = 0.5 + Math.random() * 1; // 0.5-1.5% per step
     let currentBatteryLevel = rover.battery_level || 95;
     
     // Update rover status to active
     await updateRoverData(currentBatteryLevel, rover.location_x || 0, rover.location_y || 0, 'active');
     
     for (let i = 0; i < missionLogs.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 1500 + 1000));
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 2000));
       
       // Calculate battery drain
       currentBatteryLevel = Math.max(20, currentBatteryLevel - batteryDrainPerStep);
       
-      // Calculate location changes (simulate movement)
-      const targetX = (rover.location_x || 0) + (Math.random() * 200 - 100);
-      const targetY = (rover.location_y || 0) + (Math.random() * 200 - 100);
+      // Calculate location changes (simulate gradual movement)
+      const targetX = (rover.location_x || 0) + (Math.random() * 20 - 10);
+      const targetY = (rover.location_y || 0) + (Math.random() * 20 - 10);
       const progress = (i + 1) / totalSteps;
       const currentX = (rover.location_x || 0) + (targetX - (rover.location_x || 0)) * progress;
       const currentY = (rover.location_y || 0) + (targetY - (rover.location_y || 0)) * progress;
