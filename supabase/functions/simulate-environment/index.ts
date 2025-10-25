@@ -6,6 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Weather API cache to prevent excessive API calls
+// Only call WeatherAPI every 5 minutes, use DB cache otherwise
+const weatherCache: { 
+  [key: string]: { 
+    timestamp: number; 
+    readingId: string;
+  } 
+} = {};
+
 interface SimulatorState {
   baseTemp: number;
   baseOxygen: number;
@@ -166,75 +175,23 @@ serve(async (req) => {
       throw new Error('Invalid mode. Must be "mars" or "earth"');
     }
 
-    let reading;
-
     if (mode === 'mars') {
       // Generate simulated Mars habitat data
       const state = marsState;
-      reading = generateReading(mode, state);
-    } else {
-      // Fetch real weather data for Earth mode
-      const weather = await fetchRealWeather(latitude, longitude);
-      
-      // Convert EPA AQI (1-6 scale) to percentage (higher is better)
-      // 1=Good(100%), 2=Moderate(83%), 3=Unhealthy for sensitive(67%), 4=Unhealthy(50%), 5=Very Unhealthy(33%), 6=Hazardous(17%)
-      const airQualityMap: { [key: number]: number } = { 1: 100, 2: 83, 3: 67, 4: 50, 5: 33, 6: 17 };
-      const airQuality = airQualityMap[weather.airQualityIndex] || 70;
-      
-      // Calculate stability score based on weather conditions
-      let stabilityScore = 100;
-      
-      // Temperature penalties (comfort range 15-25°C)
-      if (weather.temperature < 15 || weather.temperature > 25) {
-        stabilityScore -= Math.abs(weather.temperature - 20) * 2;
-      }
-      
-      // Humidity penalties (comfort range 30-60%)
-      if (weather.humidity < 30 || weather.humidity > 60) {
-        stabilityScore -= Math.abs(weather.humidity - 45) * 1.5;
-      }
-      
-      // Wind penalties (calm to moderate is ideal)
-      if (weather.windSpeed > 30) {
-        stabilityScore -= (weather.windSpeed - 30) * 2;
-      }
-      
-      // Pressure penalties (normal range 980-1020 hPa)
-      if (weather.pressure < 980 || weather.pressure > 1020) {
-        stabilityScore -= Math.abs(weather.pressure - 1000) * 0.5;
-      }
-      
-      stabilityScore = Math.max(0, Math.min(100, stabilityScore));
-      
-      reading = {
-        mode: 'earth',
-        temperature: Number(weather.temperature.toFixed(2)),
-        oxygen: Number(airQuality.toFixed(2)),
-        power: null,
-        humidity: Number(weather.humidity.toFixed(2)),
-        pressure: Number(weather.pressure.toFixed(2)),
-        co2_level: 415, // Current global average CO2 level
-        radiation: null,
-        stability_score: Number(stabilityScore.toFixed(2)),
-        is_crisis: false,
-        crisis_type: null,
-      };
-    }
+      const reading = generateReading(mode, state);
 
-    // Insert reading
-    const { data: insertedReading, error: readingError } = await supabase
-      .from('environmental_readings')
-      .insert(reading)
-      .select()
-      .single();
+      // Insert reading
+      const { data: insertedReading, error: readingError } = await supabase
+        .from('environmental_readings')
+        .insert(reading)
+        .select()
+        .single();
 
-    if (readingError) throw readingError;
+      if (readingError) throw readingError;
 
-    // Generate events based on reading
-    const events = [];
+      // Generate events based on reading
+      const events = [];
 
-    if (mode === 'mars') {
-      // Mars habitat-specific alerts
       if (reading.stability_score < 40) {
         events.push({
           mode,
@@ -285,75 +242,186 @@ serve(async (req) => {
           reading_id: insertedReading.id,
         });
       }
+
+      if (events.length > 0) {
+        const { error: eventsError } = await supabase
+          .from('system_events')
+          .insert(events);
+
+        if (eventsError) console.error('Error inserting events:', eventsError);
+      }
+
+      // Log crisis events
+      if (reading.is_crisis && reading.crisis_type) {
+        await supabase.from('system_events').insert({
+          mode,
+          event_type: 'crisis',
+          severity: 'critical',
+          title: `Crisis: ${reading.crisis_type.replace('_', ' ')}`,
+          message: `System experiencing ${reading.crisis_type.replace('_', ' ')}`,
+          reading_id: insertedReading.id,
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, reading: insertedReading, cached: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } else {
-      // Earth weather-specific alerts
-      if (reading.temperature < 0) {
-        events.push({
-          mode,
-          event_type: 'alert',
-          severity: 'warning',
-          title: 'Freezing Temperature',
-          message: `Temperature dropped to ${reading.temperature}°C`,
-          reading_id: insertedReading.id,
-        });
-      } else if (reading.temperature > 35) {
-        events.push({
-          mode,
-          event_type: 'alert',
-          severity: 'warning',
-          title: 'Extreme Heat',
-          message: `Temperature reached ${reading.temperature}°C`,
-          reading_id: insertedReading.id,
-        });
-      }
+      // Earth mode: Smart caching to avoid excessive API calls
+      const cacheKey = `${latitude},${longitude}`;
+      const now = Date.now();
+      const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutes in milliseconds
+      
+      const cachedData = weatherCache[cacheKey];
+      const shouldFetchNewData = !cachedData || (now - cachedData.timestamp > FIVE_MINUTES);
+      
+      if (shouldFetchNewData) {
+        console.log(`Fetching fresh weather data for ${cacheKey}`);
+        
+        // Fetch real weather data from WeatherAPI.com
+        const weather = await fetchRealWeather(latitude, longitude);
+        
+        // Convert EPA AQI (1-6 scale) to percentage (higher is better)
+        const airQualityMap: { [key: number]: number } = { 1: 100, 2: 83, 3: 67, 4: 50, 5: 33, 6: 17 };
+        const airQuality = airQualityMap[weather.airQualityIndex] || 70;
+        
+        // Calculate stability score based on weather conditions
+        let stabilityScore = 100;
+        
+        if (weather.temperature < 15 || weather.temperature > 25) {
+          stabilityScore -= Math.abs(weather.temperature - 20) * 2;
+        }
+        
+        if (weather.humidity < 30 || weather.humidity > 60) {
+          stabilityScore -= Math.abs(weather.humidity - 45) * 1.5;
+        }
+        
+        if (weather.windSpeed > 30) {
+          stabilityScore -= (weather.windSpeed - 30) * 2;
+        }
+        
+        if (weather.pressure < 980 || weather.pressure > 1020) {
+          stabilityScore -= Math.abs(weather.pressure - 1000) * 0.5;
+        }
+        
+        stabilityScore = Math.max(0, Math.min(100, stabilityScore));
+        
+        const reading = {
+          mode: 'earth',
+          temperature: Number(weather.temperature.toFixed(2)),
+          oxygen: Number(airQuality.toFixed(2)),
+          power: null,
+          humidity: Number(weather.humidity.toFixed(2)),
+          pressure: Number(weather.pressure.toFixed(2)),
+          co2_level: 415,
+          radiation: null,
+          stability_score: Number(stabilityScore.toFixed(2)),
+          is_crisis: false,
+          crisis_type: null,
+        };
+        
+        // Insert new reading into database
+        const { data: insertedReading, error: readingError } = await supabase
+          .from('environmental_readings')
+          .insert(reading)
+          .select()
+          .single();
 
-      if (reading.humidity > 85) {
-        events.push({
-          mode,
-          event_type: 'alert',
-          severity: 'info',
-          title: 'High Humidity',
-          message: `Humidity at ${reading.humidity}% - rain likely`,
-          reading_id: insertedReading.id,
-        });
-      }
+        if (readingError) throw readingError;
+        
+        // Update cache
+        weatherCache[cacheKey] = {
+          timestamp: now,
+          readingId: insertedReading.id,
+        };
+        
+        console.log(`Cached weather data for ${cacheKey}, valid for 5 minutes`);
+        
+        // Generate events
+        const events = [];
+        
+        if (insertedReading.temperature < 0) {
+          events.push({
+            mode,
+            event_type: 'alert',
+            severity: 'warning',
+            title: 'Freezing Temperature',
+            message: `Temperature dropped to ${insertedReading.temperature}°C`,
+            reading_id: insertedReading.id,
+          });
+        } else if (insertedReading.temperature > 35) {
+          events.push({
+            mode,
+            event_type: 'alert',
+            severity: 'warning',
+            title: 'Extreme Heat',
+            message: `Temperature reached ${insertedReading.temperature}°C`,
+            reading_id: insertedReading.id,
+          });
+        }
 
-      if (reading.pressure < 980) {
-        events.push({
-          mode,
-          event_type: 'alert',
-          severity: 'warning',
-          title: 'Low Pressure System',
-          message: 'Storm conditions possible',
-          reading_id: insertedReading.id,
-        });
+        if (insertedReading.humidity > 85) {
+          events.push({
+            mode,
+            event_type: 'alert',
+            severity: 'info',
+            title: 'High Humidity',
+            message: `Humidity at ${insertedReading.humidity}% - rain likely`,
+            reading_id: insertedReading.id,
+          });
+        }
+
+        if (insertedReading.pressure < 980) {
+          events.push({
+            mode,
+            event_type: 'alert',
+            severity: 'warning',
+            title: 'Low Pressure System',
+            message: 'Storm conditions possible',
+            reading_id: insertedReading.id,
+          });
+        }
+
+        if (events.length > 0) {
+          const { error: eventsError } = await supabase
+            .from('system_events')
+            .insert(events);
+
+          if (eventsError) console.error('Error inserting events:', eventsError);
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, reading: insertedReading, cached: false }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        // Use cached data - fetch the last reading from database
+        console.log(`Using cached weather data for ${cacheKey} (${Math.floor((now - cachedData.timestamp) / 1000)}s old)`);
+        
+        const { data: cachedReading, error: readingError } = await supabase
+          .from('environmental_readings')
+          .select('*')
+          .eq('id', cachedData.readingId)
+          .single();
+
+        if (readingError || !cachedReading) {
+          // Cache miss, invalidate and retry
+          delete weatherCache[cacheKey];
+          throw new Error('Cache miss, please retry');
+        }
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            reading: cachedReading, 
+            cached: true,
+            cacheAge: Math.floor((now - cachedData.timestamp) / 1000)
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
-
-    if (events.length > 0) {
-      const { error: eventsError } = await supabase
-        .from('system_events')
-        .insert(events);
-
-      if (eventsError) console.error('Error inserting events:', eventsError);
-    }
-
-    // Log crisis events
-    if (reading.is_crisis && reading.crisis_type) {
-      await supabase.from('system_events').insert({
-        mode,
-        event_type: 'crisis',
-        severity: 'critical',
-        title: `Crisis: ${reading.crisis_type.replace('_', ' ')}`,
-        message: `System experiencing ${reading.crisis_type.replace('_', ' ')}`,
-        reading_id: insertedReading.id,
-      });
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, reading: insertedReading }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Error in simulate-environment:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

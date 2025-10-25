@@ -183,7 +183,7 @@ export const useEnvironmentData = (
 
     const interval = setInterval(() => {
       triggerSimulation(location);
-    }, 2000); // Every 2 seconds
+    }, 5000); // Every 5 seconds
 
     return () => clearInterval(interval);
   }, [isRunning, triggerSimulation, location]);

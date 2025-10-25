@@ -48,6 +48,11 @@ const Index = () => {
               : `Real-Time Weather Monitoring • ${selectedLocation.name}`
             }
           </p>
+          {mode === 'earth' && currentReading && (
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Last Updated: {new Date(currentReading.timestamp).toLocaleTimeString()} • Updates every 5 seconds • Fresh weather data every 5 minutes
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <ModeToggle mode={mode} onModeChange={handleModeChange} />
