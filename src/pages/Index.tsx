@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatusGauge } from "@/components/StatusGauge";
 import { AlertsPanel } from "@/components/AlertsPanel";
@@ -27,6 +27,12 @@ const Index = () => {
     setMode(newMode);
     setIsRunning(false);
   };
+
+  useEffect(() => {
+    if (mode === 'earth' && !isRunning) {
+      triggerSimulation(selectedLocation);
+    }
+  }, [selectedLocation, mode]);
 
   return (
     <div className="min-h-screen bg-background p-6">
