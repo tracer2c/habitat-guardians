@@ -5,17 +5,38 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MissionCard } from "@/components/MissionCard";
 import { RoverStatusCard } from "@/components/RoverStatusCard";
-import { useMissions } from "@/hooks/useMissions";
+import { RoverMissionDialog } from "@/components/RoverMissionDialog";
+import { useMissions, Mission, Rover } from "@/hooks/useMissions";
 import { Plus, Rocket, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 export const MissionControlPanel = () => {
   const { missions, rovers, isLoading, updateMission } = useMissions();
   const [filter, setFilter] = useState<string>('all');
+  const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+  const [selectedRover, setSelectedRover] = useState<Rover | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleStart = async (id: string) => {
-    const success = await updateMission(id, { status: 'in_progress' });
+    const mission = missions.find(m => m.id === id);
+    if (!mission) return;
+
+    // Find an available rover
+    const availableRover = rovers.find(r => r.status === 'idle' || r.status === 'active');
+    if (!availableRover) {
+      toast.error("No rovers available");
+      return;
+    }
+
+    const success = await updateMission(id, { 
+      status: 'in_progress',
+      assigned_to: availableRover.rover_id 
+    });
+    
     if (success) {
+      setSelectedMission(mission);
+      setSelectedRover(availableRover);
+      setDialogOpen(true);
       toast.success("Mission started");
     }
   };
@@ -149,6 +170,15 @@ export const MissionControlPanel = () => {
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {selectedMission && selectedRover && (
+        <RoverMissionDialog
+          mission={selectedMission}
+          rover={selectedRover}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+        />
+      )}
     </Card>
   );
 };

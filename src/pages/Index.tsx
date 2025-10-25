@@ -10,6 +10,7 @@ import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { RecommendationsPanel } from "@/components/RecommendationsPanel";
 import { MissionControlPanel } from "@/components/MissionControlPanel";
 import { MultiLocationDashboard } from "@/components/MultiLocationDashboard";
+import { RoverActivityLog } from "@/components/RoverActivityLog";
 import { LocationSelector, LOCATIONS, Location } from "@/components/LocationSelector";
 import { HabitatMode } from "@/lib/dataSimulator";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
@@ -270,12 +271,16 @@ const Index = () => {
         </>
       )}
 
-      {/* Mission Log - Always show */}
-      <MissionLog entries={alerts.slice(0, 8).map(a => ({
-        timestamp: a.timestamp,
-        message: a.message,
-        type: a.severity as 'info' | 'warning' | 'critical'
-      }))} />
+      {/* Mission Log / Rover Activity - Always show */}
+      {mode === 'mars' ? (
+        <RoverActivityLog />
+      ) : (
+        <MissionLog entries={alerts.slice(0, 8).map(a => ({
+          timestamp: a.timestamp,
+          message: a.message,
+          type: a.severity as 'info' | 'warning' | 'critical'
+        }))} />
+      )}
     </div>
   );
 };
