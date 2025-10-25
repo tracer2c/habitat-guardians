@@ -10,6 +10,7 @@ import { NewMissionDialog } from "@/components/NewMissionDialog";
 import { useMissions, Mission, Rover } from "@/hooks/useMissions";
 import { Plus, Rocket, Activity } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const MissionControlPanel = () => {
   const { missions, rovers, isLoading, updateMission, createMission } = useMissions();
@@ -53,12 +54,30 @@ export const MissionControlPanel = () => {
     });
     
     if (success) {
+      // Create initial mission assignment log
+      await supabase
+        .from('system_events')
+        .insert([{
+          mode: 'mars',
+          title: 'rover_activity',
+          message: `[SYSTEM] ${availableRover.name} received mission assignment: ${mission.title}`,
+          event_type: 'rover_activity',
+          severity: 'info',
+          metadata: {
+            mission_id: id,
+            rover_id: availableRover.rover_id,
+            rover_name: availableRover.name,
+            mission_title: mission.title,
+            mission_assigned: true
+          }
+        }]);
+      
       // Update the mission object with the new status
       const updatedMission = { ...mission, status: 'in_progress' as const, assigned_to: availableRover.rover_id };
       setSelectedMission(updatedMission);
       setSelectedRover(availableRover);
       setDialogOpen(true);
-      toast.success("Mission started");
+      toast.success(`${availableRover.name} deployed to mission`);
     }
   };
 
