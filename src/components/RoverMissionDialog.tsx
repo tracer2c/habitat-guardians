@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Mission, Rover } from "@/hooks/useMissions";
 import { useRoverLogs } from "@/hooks/useRoverLogs";
-import { Activity, Clock, MapPin } from "lucide-react";
+import { useMissions } from "@/hooks/useMissions";
+import { Activity, Clock, MapPin, Battery } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface RoverMissionDialogProps {
   mission: Mission;
@@ -15,20 +17,72 @@ interface RoverMissionDialogProps {
 
 export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: RoverMissionDialogProps) => {
   const { logs, createLog } = useRoverLogs(mission.id);
+  const { updateRoverStatus } = useMissions();
   const [hasStarted, setHasStarted] = useState(false);
+  const [currentBattery, setCurrentBattery] = useState(rover.battery_level || 95);
+  const [currentLocation, setCurrentLocation] = useState({ 
+    x: rover.location_x || 0, 
+    y: rover.location_y || 0 
+  });
+  const [roverStatus, setRoverStatus] = useState(rover.status);
+  const missionStartedRef = useRef(false);
 
   useEffect(() => {
-    if (open && mission.status === 'in_progress' && !hasStarted) {
+    if (open && mission.status === 'in_progress' && !missionStartedRef.current) {
+      missionStartedRef.current = true;
       setHasStarted(true);
       simulateMissionLogs();
     }
-  }, [open, mission.status]);
+  }, [open, mission.status, mission.id]);
+
+  useEffect(() => {
+    // Reset when dialog closes
+    if (!open) {
+      missionStartedRef.current = false;
+      setHasStarted(false);
+    }
+  }, [open]);
+
+  const updateRoverData = async (battery: number, locationX: number, locationY: number, status: string) => {
+    setCurrentBattery(battery);
+    setCurrentLocation({ x: locationX, y: locationY });
+    setRoverStatus(status as any);
+    
+    await updateRoverStatus(rover.rover_id, {
+      battery_level: battery,
+      location_x: locationX,
+      location_y: locationY,
+      status: status as any,
+      current_task_id: mission.id
+    });
+  };
 
   const simulateMissionLogs = async () => {
     const missionLogs = generateMissionSequence(mission, rover);
+    const totalSteps = missionLogs.length;
+    const batteryDrainPerStep = 5; // 5% per step
+    let currentBatteryLevel = rover.battery_level || 95;
+    
+    // Update rover status to active
+    await updateRoverData(currentBatteryLevel, rover.location_x || 0, rover.location_y || 0, 'active');
     
     for (let i = 0; i < missionLogs.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1500 + 1000));
+      
+      // Calculate battery drain
+      currentBatteryLevel = Math.max(20, currentBatteryLevel - batteryDrainPerStep);
+      
+      // Calculate location changes (simulate movement)
+      const targetX = (rover.location_x || 0) + (Math.random() * 200 - 100);
+      const targetY = (rover.location_y || 0) + (Math.random() * 200 - 100);
+      const progress = (i + 1) / totalSteps;
+      const currentX = (rover.location_x || 0) + (targetX - (rover.location_x || 0)) * progress;
+      const currentY = (rover.location_y || 0) + (targetY - (rover.location_y || 0)) * progress;
+      
+      // Update rover data
+      await updateRoverData(currentBatteryLevel, currentX, currentY, 'active');
+      
+      // Create log entry
       await createLog({
         message: missionLogs[i].message,
         event_type: 'rover_activity',
@@ -39,10 +93,31 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
           rover_name: rover.name,
           mission_title: mission.title,
           step: i + 1,
-          total_steps: missionLogs.length
+          total_steps: totalSteps,
+          battery: currentBatteryLevel,
+          location_x: currentX,
+          location_y: currentY
         }
       });
     }
+    
+    // Mission complete - return to idle/charging
+    const finalStatus = currentBatteryLevel < 30 ? 'charging' : 'idle';
+    await updateRoverData(currentBatteryLevel, rover.location_x || 0, rover.location_y || 0, finalStatus);
+    
+    // Add completion log to main activity log
+    await createLog({
+      message: `${rover.name} completed mission: ${mission.title}. Returning to base. Final battery: ${currentBatteryLevel}%`,
+      event_type: 'rover_activity',
+      severity: 'info',
+      metadata: {
+        rover_id: rover.rover_id,
+        rover_name: rover.name,
+        mission_title: mission.title,
+        mission_completed: true,
+        final_battery: currentBatteryLevel
+      }
+    });
   };
 
   const missionLogs = logs.filter(log => log.metadata?.mission_id === mission.id);
@@ -70,19 +145,25 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
           {/* Rover Status */}
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3 bg-card rounded-lg border">
-              <div className="text-xs text-muted-foreground mb-1">Battery</div>
-              <div className="text-lg font-bold">{rover.battery_level}%</div>
+              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                <Battery className="h-3 w-3" />
+                Battery
+              </div>
+              <div className="text-lg font-bold mb-1">{currentBattery.toFixed(0)}%</div>
+              <Progress value={currentBattery} className="h-1.5" />
             </div>
             <div className="p-3 bg-card rounded-lg border">
               <div className="text-xs text-muted-foreground mb-1">Location</div>
               <div className="text-sm font-medium flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                {rover.location_x?.toFixed(1)}, {rover.location_y?.toFixed(1)}
+                {currentLocation.x.toFixed(1)}, {currentLocation.y.toFixed(1)}
               </div>
             </div>
             <div className="p-3 bg-card rounded-lg border">
               <div className="text-xs text-muted-foreground mb-1">Status</div>
-              <div className="text-sm font-medium capitalize">{rover.status}</div>
+              <Badge variant={roverStatus === 'active' ? 'default' : 'secondary'} className="text-xs capitalize">
+                {roverStatus}
+              </Badge>
             </div>
           </div>
 
@@ -130,44 +211,65 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
 const generateMissionSequence = (mission: Mission, rover: Rover): Array<{message: string, severity: string}> => {
   const sequences: Record<string, Array<{message: string, severity: string}>> = {
     rover: [
-      { message: `${rover.name} received mission assignment: ${mission.title}`, severity: 'info' },
-      { message: 'Running pre-mission diagnostics...', severity: 'info' },
-      { message: 'All systems nominal. Beginning navigation to target coordinates.', severity: 'info' },
-      { message: `Moving to location: ${rover.location_x?.toFixed(1)}, ${rover.location_y?.toFixed(1)}`, severity: 'info' },
-      { message: 'Terrain analysis complete. Path is clear.', severity: 'info' },
-      { message: 'Deploying soil collection arm...', severity: 'info' },
-      { message: 'Sample collection in progress...', severity: 'info' },
-      { message: 'Sample secured. Storing in containment unit.', severity: 'info' },
-      { message: 'Mission objective achieved. Returning to base.', severity: 'info' },
+      { message: `[SYSTEM] ${rover.name} received mission assignment: ${mission.title}`, severity: 'info' },
+      { message: '[INIT] Powering up subsystems... COMPLETE', severity: 'info' },
+      { message: '[DIAG] Running pre-mission diagnostics check', severity: 'info' },
+      { message: '[DIAG] Wheel motors: NOMINAL | Camera systems: ONLINE | Sensors: ACTIVE', severity: 'info' },
+      { message: '[NAV] Computing optimal path to target coordinates', severity: 'info' },
+      { message: '[NAV] Path computed. Distance: 127.3m. Estimated time: 8 minutes', severity: 'info' },
+      { message: '[MOVE] Beginning traverse to target location', severity: 'info' },
+      { message: '[MOVE] Speed: 0.3 m/s | Heading: 045° | Battery drain: 5%/segment', severity: 'info' },
+      { message: '[SENSOR] Terrain scan: Loose regolith detected. Adjusting speed.', severity: 'warning' },
+      { message: '[NAV] Waypoint 1 reached. Continuing...', severity: 'info' },
+      { message: '[ARM] Deploying robotic arm and sample collection drill', severity: 'info' },
+      { message: '[SAMPLE] Drilling initiated. Depth: 15cm target', severity: 'info' },
+      { message: '[SAMPLE] Core sample extracted. Sealing containment unit.', severity: 'info' },
+      { message: '[DATA] Capturing high-resolution images of sample site', severity: 'info' },
+      { message: '[NAV] Mission objective complete. Calculating return path.', severity: 'info' },
+      { message: '[MOVE] Returning to base station. ETA: 9 minutes', severity: 'info' },
+      { message: '[SYSTEM] Mission accomplished. Total distance: 254.6m', severity: 'info' },
     ],
     habitat: [
-      { message: `${rover.name} dispatched for habitat maintenance task`, severity: 'info' },
-      { message: 'Approaching habitat module...', severity: 'info' },
-      { message: 'Scanning structural integrity...', severity: 'info' },
-      { message: 'Life support systems check: PASS', severity: 'info' },
-      { message: 'Performing seal inspection on airlock modules', severity: 'info' },
-      { message: 'Minor wear detected on seal B-3. Applying patch.', severity: 'warning' },
-      { message: 'Patch applied successfully. Seal integrity restored.', severity: 'info' },
-      { message: 'Habitat maintenance complete.', severity: 'info' },
+      { message: `[SYSTEM] ${rover.name} dispatched for habitat maintenance`, severity: 'info' },
+      { message: '[NAV] Approaching habitat module airlock', severity: 'info' },
+      { message: '[SENSOR] Initiating structural integrity scan', severity: 'info' },
+      { message: '[SCAN] Pressure seals: 98.7% | Thermal insulation: NOMINAL', severity: 'info' },
+      { message: '[CHECK] Life support systems verification in progress', severity: 'info' },
+      { message: '[CHECK] O2 generation: PASS | Water recycling: PASS | HVAC: PASS', severity: 'info' },
+      { message: '[INSPECT] Scanning airlock door seals B-1 through B-4', severity: 'info' },
+      { message: '[ALERT] Minor degradation detected on seal B-3 (2.3mm wear)', severity: 'warning' },
+      { message: '[REPAIR] Deploying sealant applicator. Applying polymer patch.', severity: 'info' },
+      { message: '[VERIFY] Seal integrity restored to 99.1%. Test PASSED', severity: 'info' },
+      { message: '[DATA] Uploading maintenance report to base computer', severity: 'info' },
+      { message: '[SYSTEM] Habitat maintenance cycle complete', severity: 'info' },
     ],
     science: [
-      { message: `${rover.name} beginning scientific data collection`, severity: 'info' },
-      { message: 'Calibrating scientific instruments...', severity: 'info' },
-      { message: 'Atmospheric analysis commenced', severity: 'info' },
-      { message: 'Recording radiation levels and temperature gradients', severity: 'info' },
-      { message: 'Deploying seismometer for geological data', severity: 'info' },
-      { message: 'Collecting mineral samples from surface', severity: 'info' },
-      { message: 'Data transmission to base initiated', severity: 'info' },
-      { message: 'All scientific objectives completed successfully', severity: 'info' },
+      { message: `[SYSTEM] ${rover.name} beginning scientific survey mission`, severity: 'info' },
+      { message: '[INIT] Calibrating spectrometer, seismometer, and weather station', severity: 'info' },
+      { message: '[ATMOS] Atmospheric pressure: 6.1 mbar | Temp: -63°C | Humidity: <0.1%', severity: 'info' },
+      { message: '[ATMOS] CO2: 95.3% | N2: 2.7% | Ar: 1.6% | O2: trace', severity: 'info' },
+      { message: '[RAD] Radiation levels: 0.24 mSv/day (within safe limits)', severity: 'info' },
+      { message: '[SEISMO] Deploying ground-penetrating seismometer', severity: 'info' },
+      { message: '[SEISMO] Recording subsurface vibrations. Duration: 60 seconds', severity: 'info' },
+      { message: '[GEO] Collecting rock and mineral samples for analysis', severity: 'info' },
+      { message: '[SPEC] Spectral analysis: Iron oxide detected (hematite signature)', severity: 'info' },
+      { message: '[DATA] Compressing 2.4GB sensor data for transmission', severity: 'info' },
+      { message: '[COMM] Transmitting science package to Earth relay... 100%', severity: 'info' },
+      { message: '[SYSTEM] All scientific objectives completed successfully', severity: 'info' },
     ],
     maintenance: [
-      { message: `${rover.name} assigned to equipment maintenance`, severity: 'info' },
-      { message: 'Scanning equipment status...', severity: 'info' },
-      { message: 'Solar panel cleaning initiated', severity: 'info' },
-      { message: 'Removing dust accumulation from panels 1-4', severity: 'info' },
-      { message: 'Panel efficiency increased by 12%', severity: 'info' },
-      { message: 'Inspecting communication array', severity: 'info' },
-      { message: 'All equipment operational. Maintenance cycle complete.', severity: 'info' },
+      { message: `[SYSTEM] ${rover.name} assigned to equipment maintenance routine`, severity: 'info' },
+      { message: '[DIAG] Scanning all external equipment and solar arrays', severity: 'info' },
+      { message: '[SOLAR] Dust accumulation detected: Panel efficiency at 76%', severity: 'warning' },
+      { message: '[CLEAN] Activating electrostatic dust removal system', severity: 'info' },
+      { message: '[CLEAN] Panel 1: 87% efficiency | Panel 2: 89% | Panel 3: 91% | Panel 4: 88%', severity: 'info' },
+      { message: '[RESULT] Average panel efficiency increased from 76% to 88.75%', severity: 'info' },
+      { message: '[COMM] Inspecting high-gain antenna and communication array', severity: 'info' },
+      { message: '[COMM] Signal strength: OPTIMAL | Orientation: LOCKED', severity: 'info' },
+      { message: '[WHEELS] Performing mobility system inspection', severity: 'info' },
+      { message: '[WHEELS] All 6 wheels operational. Minimal wear detected.', severity: 'info' },
+      { message: '[DATA] Equipment status report uploaded to mission control', severity: 'info' },
+      { message: '[SYSTEM] Maintenance cycle complete. All systems operational.', severity: 'info' },
     ],
   };
 

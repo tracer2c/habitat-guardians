@@ -28,13 +28,16 @@ export const MissionControlPanel = () => {
       return;
     }
 
+    // Update mission status first
     const success = await updateMission(id, { 
       status: 'in_progress',
       assigned_to: availableRover.rover_id 
     });
     
     if (success) {
-      setSelectedMission(mission);
+      // Update the mission object with the new status
+      const updatedMission = { ...mission, status: 'in_progress' as const, assigned_to: availableRover.rover_id };
+      setSelectedMission(updatedMission);
       setSelectedRover(availableRover);
       setDialogOpen(true);
       toast.success("Mission started");
