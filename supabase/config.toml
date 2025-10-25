@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.generate-missions]
 verify_jwt = false
+
+[functions.generate-advisory]
+verify_jwt = false
+
+[functions.reset-rover-batteries]
+verify_jwt = false

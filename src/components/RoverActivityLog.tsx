@@ -15,13 +15,10 @@ export const RoverActivityLog = () => {
   // Get completed missions
   const completedMissions = missions.filter(m => m.status === 'completed');
   
-  // Filter logs to only show mission-level events (not detailed step-by-step logs)
+  // Show all rover activity logs in real-time
   const missionLevelLogs = logs.filter(log => {
-    // Only show logs that indicate mission completion or assignment
-    const message = log.message.toLowerCase();
-    return message.includes('completed mission') || 
-           message.includes('returning to base') ||
-           message.includes('received mission assignment');
+    // Show all rover_activity and mission_update events
+    return log.event_type === 'rover_activity' || log.event_type === 'mission_update';
   });
   
   // Group completed missions by rover
