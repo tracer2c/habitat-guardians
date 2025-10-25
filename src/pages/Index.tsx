@@ -11,6 +11,7 @@ import { RecommendationsPanel } from "@/components/RecommendationsPanel";
 import { MissionControlPanel } from "@/components/MissionControlPanel";
 import { MultiLocationDashboard } from "@/components/MultiLocationDashboard";
 import { RoverActivityLog } from "@/components/RoverActivityLog";
+import { MarsInvestigationPanel } from "@/components/MarsInvestigationPanel";
 import { LocationSelector, LOCATIONS, Location } from "@/components/LocationSelector";
 import { HabitatMode } from "@/lib/dataSimulator";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
@@ -268,7 +269,11 @@ const Index = () => {
           {/* Secondary Grid */}
           <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <AlertsPanel alerts={alerts} />
-            {advisory && <AdvisoryPanel advisory={advisory} />}
+            {mode === 'earth' ? (
+              <MarsInvestigationPanel />
+            ) : (
+              advisory && <AdvisoryPanel advisory={advisory} />
+            )}
           </div>
         </>
       )}
