@@ -70,7 +70,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="max-w-7xl mx-auto flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary animate-gradient-shift">
             HABIT.AI
@@ -154,7 +154,7 @@ const Index = () => {
 
       {/* Status Gauges - Only show in single view */}
       {!showMultiLocation && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <StatusGauge
             label="Temperature"
             value={currentReading?.temperature || 0}
@@ -217,7 +217,9 @@ const Index = () => {
 
       {/* Multi-Location Dashboard for Earth Mode */}
       {mode === 'earth' && showMultiLocation && (
-        <MultiLocationDashboard />
+        <div className="max-w-7xl mx-auto">
+          <MultiLocationDashboard />
+        </div>
       )}
 
       {/* Main Content Grid - Only show in single view */}
