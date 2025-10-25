@@ -95,7 +95,7 @@ export const PredictionsPanel = ({ predictions }: PredictionsPanelProps) => {
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Current</div>
                 <div className="text-lg font-bold">
-                  {pred.current.toFixed(1)}{getMetricUnit(pred.metric)}
+                  {pred.current?.toFixed(1) ?? 'N/A'}{pred.current != null && getMetricUnit(pred.metric)}
                 </div>
               </div>
 
@@ -104,14 +104,14 @@ export const PredictionsPanel = ({ predictions }: PredictionsPanelProps) => {
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Predicted</div>
                 <div className="text-lg font-bold text-primary">
-                  {pred.predicted.toFixed(1)}{getMetricUnit(pred.metric)}
+                  {pred.predicted?.toFixed(1) ?? 'N/A'}{pred.predicted != null && getMetricUnit(pred.metric)}
                 </div>
               </div>
 
               <div className="ml-auto text-right">
                 <div className="text-xs text-muted-foreground mb-1">Confidence</div>
                 <div className="text-sm font-medium">
-                  {(pred.confidence * 100).toFixed(0)}%
+                  {pred.confidence != null ? (pred.confidence * 100).toFixed(0) : 'N/A'}%
                 </div>
               </div>
             </div>
