@@ -24,7 +24,7 @@ export type Database = {
           is_crisis: boolean | null
           mode: string
           oxygen: number
-          power: number
+          power: number | null
           pressure: number
           radiation: number | null
           stability_score: number
@@ -40,7 +40,7 @@ export type Database = {
           is_crisis?: boolean | null
           mode: string
           oxygen: number
-          power: number
+          power?: number | null
           pressure: number
           radiation?: number | null
           stability_score: number
@@ -56,7 +56,7 @@ export type Database = {
           is_crisis?: boolean | null
           mode?: string
           oxygen?: number
-          power?: number
+          power?: number | null
           pressure?: number
           radiation?: number | null
           stability_score?: number
