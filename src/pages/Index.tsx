@@ -151,108 +151,123 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Status Gauges */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <StatusGauge
-          label="Temperature"
-          value={currentReading?.temperature || 0}
-          unit="°C"
-          min={0}
-          max={50}
-          optimalMin={mode === "mars" ? 18 : 15}
-          optimalMax={mode === "mars" ? 24 : 25}
-          warningMin={mode === "mars" ? 15 : 0}
-          warningMax={mode === "mars" ? 30 : 35}
-        />
-        <StatusGauge
-          label={mode === "mars" ? "Oxygen" : "Air Quality"}
-          value={currentReading?.oxygen || 0}
-          unit={mode === "mars" ? "%" : "AQI"}
-          min={0}
-          max={mode === "mars" ? 25 : 100}
-          optimalMin={mode === "mars" ? 19.5 : 70}
-          optimalMax={mode === "mars" ? 23 : 100}
-          warningMin={mode === "mars" ? 18 : 50}
-          warningMax={mode === "mars" ? 24 : 100}
-        />
-        {mode === "mars" && (
+      {/* Status Gauges - Only show in single view */}
+      {!showMultiLocation && (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <StatusGauge
-            label="Power"
-            value={currentReading?.power || 0}
+            label="Temperature"
+            value={currentReading?.temperature || 0}
+            unit="°C"
+            min={0}
+            max={50}
+            optimalMin={mode === "mars" ? 18 : 15}
+            optimalMax={mode === "mars" ? 24 : 25}
+            warningMin={mode === "mars" ? 15 : 0}
+            warningMax={mode === "mars" ? 30 : 35}
+          />
+          <StatusGauge
+            label={mode === "mars" ? "Oxygen" : "Air Quality"}
+            value={currentReading?.oxygen || 0}
+            unit={mode === "mars" ? "%" : "AQI"}
+            min={0}
+            max={mode === "mars" ? 25 : 100}
+            optimalMin={mode === "mars" ? 19.5 : 70}
+            optimalMax={mode === "mars" ? 23 : 100}
+            warningMin={mode === "mars" ? 18 : 50}
+            warningMax={mode === "mars" ? 24 : 100}
+          />
+          {mode === "mars" && (
+            <StatusGauge
+              label="Power"
+              value={currentReading?.power || 0}
+              unit="%"
+              min={0}
+              max={100}
+              optimalMin={60}
+              optimalMax={100}
+              warningMin={30}
+              warningMax={100}
+            />
+          )}
+          <StatusGauge
+            label="Humidity"
+            value={currentReading?.humidity || 0}
             unit="%"
+            min={0}
+            max={100}
+            optimalMin={30}
+            optimalMax={60}
+            warningMin={20}
+            warningMax={85}
+          />
+          <StatusGauge
+            label={mode === "mars" ? "Stability" : "Weather Score"}
+            value={currentReading?.stabilityScore || 0}
+            unit=""
             min={0}
             max={100}
             optimalMin={60}
             optimalMax={100}
-            warningMin={30}
+            warningMin={40}
             warningMax={100}
           />
-        )}
-        <StatusGauge
-          label="Humidity"
-          value={currentReading?.humidity || 0}
-          unit="%"
-          min={0}
-          max={100}
-          optimalMin={30}
-          optimalMax={60}
-          warningMin={20}
-          warningMax={85}
-        />
-        <StatusGauge
-          label={mode === "mars" ? "Stability" : "Weather Score"}
-          value={currentReading?.stabilityScore || 0}
-          unit=""
-          min={0}
-          max={100}
-          optimalMin={60}
-          optimalMax={100}
-          warningMin={40}
-          warningMax={100}
-        />
-      </div>
+        </div>
+      )}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 space-y-6">
-          <EnvironmentChart data={data.slice(-20)} mode={mode} />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-card border border-border rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">Pressure</p>
-              <p className="text-2xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
+      {/* Multi-Location Dashboard for Earth Mode */}
+      {mode === 'earth' && showMultiLocation && (
+        <MultiLocationDashboard />
+      )}
+
+      {/* Main Content Grid - Only show in single view */}
+      {!showMultiLocation && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2 space-y-6">
+              <EnvironmentChart data={data.slice(-20)} mode={mode} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-card border border-border rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Pressure</p>
+                  <p className="text-2xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
+                </div>
+                {mode === 'earth' && currentReading?.co2_level && (
+                  <div className="bg-card border border-border rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground">CO₂ Level</p>
+                    <p className="text-2xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
+                  </div>
+                )}
+                {mode === 'mars' && currentReading?.radiation && (
+                  <div className="bg-card border border-border rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground">Radiation</p>
+                    <p className="text-2xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
+                  </div>
+                )}
+              </div>
+              {currentReading?.is_crisis && (
+                <div className="bg-destructive/20 border border-destructive rounded-lg p-4">
+                  <p className="text-sm text-destructive font-semibold">⚠ CRISIS MODE</p>
+                  <p className="text-lg font-bold text-destructive">{currentReading.crisis_type?.replace('_', ' ').toUpperCase()}</p>
+                </div>
+              )}
             </div>
-            {mode === 'earth' && currentReading?.co2_level && (
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">CO₂ Level</p>
-                <p className="text-2xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
-              </div>
-            )}
-            {mode === 'mars' && currentReading?.radiation && (
-              <div className="bg-card border border-border rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">Radiation</p>
-                <p className="text-2xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
-              </div>
-            )}
+
+            <div className="space-y-6">
+              <RecommendationsPanel 
+                recommendations={recommendations}
+                onRefresh={() => currentReading && generateRecommendations(currentReading, alerts, predictions)}
+                isLoading={isGeneratingRecommendations}
+              />
+              <PredictionsPanel predictions={predictions} />
+              <AnomalyPanel anomalies={anomalies} />
+            </div>
           </div>
-          {currentReading?.is_crisis && (
-            <div className="bg-destructive/20 border border-destructive rounded-lg p-4">
-              <p className="text-sm text-destructive font-semibold">⚠ CRISIS MODE</p>
-              <p className="text-lg font-bold text-destructive">{currentReading.crisis_type?.replace('_', ' ').toUpperCase()}</p>
-            </div>
-          )}
-        </div>
 
-        <div className="space-y-6">
-          <PredictionsPanel predictions={predictions} />
-          <AnomalyPanel anomalies={anomalies} />
-        </div>
-      </div>
-
-      {/* Secondary Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <AlertsPanel alerts={alerts} />
-        {advisory && <AdvisoryPanel advisory={advisory} />}
-      </div>
+          {/* Secondary Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <AlertsPanel alerts={alerts} />
+            {advisory && <AdvisoryPanel advisory={advisory} />}
+          </div>
+        </>
       )}
 
       {/* Mission Log - Always show */}
