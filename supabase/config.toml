@@ -1,1 +1,4 @@
 project_id = "wkxvruapnvflgykzqtgp"
+
+[functions.simulate-environment]
+verify_jwt = false
