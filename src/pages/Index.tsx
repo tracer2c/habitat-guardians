@@ -70,7 +70,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       {/* Header */}
-      <div className="max-w-7xl mx-auto flex items-center justify-between mb-8">
+      <div className="max-w-[1400px] mx-auto flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary animate-gradient-shift">
             HABIT.AI
@@ -154,7 +154,7 @@ const Index = () => {
 
       {/* Status Gauges - Only show in single view */}
       {!showMultiLocation && (
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <StatusGauge
             label="Temperature"
             value={currentReading?.temperature || 0}
@@ -225,10 +225,10 @@ const Index = () => {
       {/* Main Content Grid - Only show in single view */}
       {!showMultiLocation && (
         <>
-          <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
             <div className="lg:col-span-8 space-y-6">
               <EnvironmentChart data={data.slice(-20)} mode={mode} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 grid-auto-rows-fr">
+              <div className="grid grid-cols-2 gap-6 auto-rows-fr">
                 <div className="bg-card border border-border rounded-lg p-6 flex flex-col justify-between min-w-[200px] flex-1 min-h-[120px]">
                   <p className="text-sm text-muted-foreground mb-2">Pressure</p>
                   <p className="text-3xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
@@ -266,7 +266,7 @@ const Index = () => {
           </div>
 
           {/* Secondary Grid */}
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <AlertsPanel alerts={alerts} />
             {advisory && <AdvisoryPanel advisory={advisory} />}
           </div>
@@ -274,16 +274,15 @@ const Index = () => {
       )}
 
       {/* Mission Log / Rover Activity - Always show */}
-      <div className="max-w-7xl mx-auto">
-        {mode === 'mars' ? (
-          <RoverActivityLog />
-        ) : (
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {mode === 'earth' && (
           <MissionLog entries={alerts.slice(0, 8).map(a => ({
             timestamp: a.timestamp,
             message: a.message,
             type: a.severity as 'info' | 'warning' | 'critical'
           }))} />
         )}
+        <RoverActivityLog />
       </div>
     </div>
   );
