@@ -5,9 +5,12 @@ import { AlertsPanel } from "@/components/AlertsPanel";
 import { AdvisoryPanel } from "@/components/AdvisoryPanel";
 import { EnvironmentChart } from "@/components/EnvironmentChart";
 import { MissionLog } from "@/components/MissionLog";
+import { PredictionsPanel } from "@/components/PredictionsPanel";
+import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { LocationSelector, LOCATIONS, Location } from "@/components/LocationSelector";
 import { HabitatMode } from "@/lib/dataSimulator";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
+import { usePredictions } from "@/hooks/usePredictions";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Database } from "lucide-react";
 
@@ -17,10 +20,12 @@ const Index = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location>(LOCATIONS[0]);
 
   const { data, currentReading, alerts, advisory, triggerSimulation } = useEnvironmentData(
-    mode, 
+    mode,
     isRunning,
     mode === 'earth' ? selectedLocation : undefined
   );
+
+  const { predictions, anomalies } = usePredictions(data, currentReading);
 
   const handleModeChange = (newMode: HabitatMode) => {
     setMode(newMode);
@@ -153,51 +158,53 @@ const Index = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <EnvironmentChart data={data} mode={mode} />
-        </div>
-        <div className="space-y-6">
-          <AlertsPanel alerts={alerts} />
-          {advisory && <AdvisoryPanel advisory={advisory} />}
-        </div>
-      </div>
-
-      {/* Additional Metrics */}
-      {currentReading && (
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">Pressure</p>
-            <p className="text-2xl font-bold">{currentReading.pressure.toFixed(1)} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2 space-y-6">
+          <EnvironmentChart data={data.slice(-20)} mode={mode} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-card border border-border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">Pressure</p>
+              <p className="text-2xl font-bold">{currentReading?.pressure.toFixed(1) || 0} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
+            </div>
+            {mode === 'earth' && currentReading?.co2_level && (
+              <div className="bg-card border border-border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">CO₂ Level</p>
+                <p className="text-2xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
+              </div>
+            )}
+            {mode === 'mars' && currentReading?.radiation && (
+              <div className="bg-card border border-border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Radiation</p>
+                <p className="text-2xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
+              </div>
+            )}
           </div>
-          {mode === 'earth' && currentReading.co2_level && (
-            <div className="bg-card border border-border rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">CO₂ Level</p>
-              <p className="text-2xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
-            </div>
-          )}
-          {mode === 'mars' && currentReading.radiation && (
-            <div className="bg-card border border-border rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">Radiation</p>
-              <p className="text-2xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
-            </div>
-          )}
-          {currentReading.is_crisis && (
-            <div className="bg-destructive/20 border border-destructive rounded-lg p-4 col-span-2">
+          {currentReading?.is_crisis && (
+            <div className="bg-destructive/20 border border-destructive rounded-lg p-4">
               <p className="text-sm text-destructive font-semibold">⚠ CRISIS MODE</p>
               <p className="text-lg font-bold text-destructive">{currentReading.crisis_type?.replace('_', ' ').toUpperCase()}</p>
             </div>
           )}
         </div>
-      )}
 
-      <div className="mt-8">
-        <MissionLog entries={alerts.slice(0, 8).map(a => ({
-          timestamp: a.timestamp,
-          message: a.message,
-          type: a.severity as 'info' | 'warning' | 'critical'
-        }))} />
+        <div className="space-y-6">
+          <PredictionsPanel predictions={predictions} />
+          <AnomalyPanel anomalies={anomalies} />
+        </div>
       </div>
+
+      {/* Secondary Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <AlertsPanel alerts={alerts} />
+        {advisory && <AdvisoryPanel advisory={advisory} />}
+      </div>
+
+      {/* Mission Log */}
+      <MissionLog entries={alerts.slice(0, 8).map(a => ({
+        timestamp: a.timestamp,
+        message: a.message,
+        type: a.severity as 'info' | 'warning' | 'critical'
+      }))} />
     </div>
   );
 };
