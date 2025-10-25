@@ -120,11 +120,11 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
     });
   };
 
-  const missionLogs = logs.filter(log => log.metadata?.mission_id === mission.id).reverse();
+  const missionLogs = [...logs].reverse();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[600px]" aria-describedby="mission-dialog-description">
+      <DialogContent className="max-w-2xl max-h-[80vh]" aria-describedby="mission-dialog-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
@@ -175,8 +175,9 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold">Live Mission Log</h3>
+              <Badge variant="outline" className="text-xs">{missionLogs.length} entries</Badge>
             </div>
-            <ScrollArea className="h-[280px] border rounded-lg p-3">
+            <ScrollArea className="h-[320px] border rounded-lg p-3 bg-card/50">
               {missionLogs.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Initializing mission...

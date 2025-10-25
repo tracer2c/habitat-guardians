@@ -17,22 +17,22 @@ export const useRoverLogs = (missionId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchLogs = async () => {
-    let query = supabase
+    const query = supabase
       .from('system_events')
       .select('*')
       .eq('mode', 'mars')
       .in('event_type', ['rover_activity', 'mission_update', 'system'])
       .order('timestamp', { ascending: false })
-      .limit(50);
-
-    if (missionId) {
-      query = query.eq('metadata->>mission_id', missionId);
-    }
+      .limit(100);
 
     const { data, error } = await query;
 
     if (!error && data) {
-      setLogs(data as RoverLog[]);
+      // Filter by mission_id on client side if provided
+      const filteredData = missionId 
+        ? (data as RoverLog[]).filter(log => log.metadata?.mission_id === missionId)
+        : data as RoverLog[];
+      setLogs(filteredData);
     }
     setIsLoading(false);
   };
