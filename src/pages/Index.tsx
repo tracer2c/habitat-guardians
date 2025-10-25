@@ -1,225 +1,176 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { StatusGauge } from "@/components/StatusGauge";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { AdvisoryPanel } from "@/components/AdvisoryPanel";
 import { EnvironmentChart } from "@/components/EnvironmentChart";
-import { MissionLog, LogEntry } from "@/components/MissionLog";
-import { HabitatSimulator, HabitatMode, EnvironmentalData, Alert, Advisory } from "@/lib/dataSimulator";
+import { MissionLog } from "@/components/MissionLog";
+import { HabitatMode, Advisory } from "@/lib/dataSimulator";
+import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { Button } from "@/components/ui/button";
-import { Play, Pause } from "lucide-react";
-
-const MAX_DATA_POINTS = 50;
+import { Play, Pause, Database } from "lucide-react";
 
 const Index = () => {
-  const [mode, setMode] = useState<HabitatMode>('mars');
-  const [simulator] = useState(() => new HabitatSimulator('mars'));
-  const [isRunning, setIsRunning] = useState(true);
-  const [data, setData] = useState<EnvironmentalData[]>([]);
-  const [currentData, setCurrentData] = useState<EnvironmentalData | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [advisory, setAdvisory] = useState<Advisory | null>(null);
-  const [missionLog, setMissionLog] = useState<LogEntry[]>([]);
+  const [mode, setMode] = useState<HabitatMode>("mars");
+  const [isRunning, setIsRunning] = useState(false);
+  const [advisory] = useState<Advisory | null>(null);
 
-  const handleModeChange = useCallback((newMode: HabitatMode) => {
+  const { data, currentReading, alerts, triggerSimulation } = useEnvironmentData(mode, isRunning);
+
+  const handleModeChange = (newMode: HabitatMode) => {
     setMode(newMode);
-    simulator.setMode(newMode);
-    setMissionLog(prev => [
-      {
-        timestamp: new Date(),
-        message: `Switched to ${newMode.toUpperCase()} mode`,
-        type: 'info',
-      },
-      ...prev,
-    ]);
-  }, [simulator]);
-
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(() => {
-      const newData = simulator.generateData();
-      const newAlerts = simulator.detectAlerts(newData);
-      const newAdvisory = simulator.generateAdvisory(newData, newAlerts);
-
-      setCurrentData(newData);
-      setData(prev => [...prev, newData].slice(-MAX_DATA_POINTS));
-      setAlerts(newAlerts);
-      setAdvisory(newAdvisory);
-
-      // Log significant events
-      if (newAlerts.some(a => a.severity === 'critical')) {
-        setMissionLog(prev => [
-          {
-            timestamp: new Date(),
-            message: 'CRITICAL: Multiple systems compromised',
-            type: 'critical',
-          },
-          ...prev.slice(0, 49),
-        ]);
-      } else if (newData.stabilityScore < 60 && (data.length === 0 || data[data.length - 1].stabilityScore >= 60)) {
-        setMissionLog(prev => [
-          {
-            timestamp: new Date(),
-            message: 'Stability score dropped below 60',
-            type: 'warning',
-          },
-          ...prev.slice(0, 49),
-        ]);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isRunning, simulator, data]);
-
-  // Initialize with first data point
-  useEffect(() => {
-    const initialData = simulator.generateData();
-    setCurrentData(initialData);
-    setData([initialData]);
-    setMissionLog([
-      {
-        timestamp: new Date(),
-        message: 'HABIT.AI system initialized',
-        type: 'info',
-      },
-    ]);
-  }, []);
+    setIsRunning(false);
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
       {/* Header */}
-      <header className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              HABIT.AI
-            </h1>
-            <p className="text-muted-foreground mt-1">Adaptive Habitat Intelligence System</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <ModeToggle mode={mode} onModeChange={handleModeChange} />
-            <Button
-              variant={isRunning ? 'default' : 'secondary'}
-              size="sm"
-              onClick={() => setIsRunning(!isRunning)}
-              className="gap-2"
-            >
-              {isRunning ? (
-                <>
-                  <Pause className="h-4 w-4" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4" />
-                  Resume
-                </>
-              )}
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary animate-gradient-shift">
+            HABIT.AI
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Adaptive Habitat Intelligence System • Live Database
+          </p>
         </div>
+        <div className="flex items-center gap-4">
+          <ModeToggle mode={mode} onModeChange={handleModeChange} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={triggerSimulation}
+            className="gap-2"
+          >
+            <Database className="h-4 w-4" />
+            Generate Data
+          </Button>
+          <Button
+            variant={isRunning ? "destructive" : "default"}
+            size="sm"
+            onClick={() => setIsRunning(!isRunning)}
+            className="gap-2"
+          >
+            {isRunning ? (
+              <>
+                <Pause className="h-4 w-4" />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Auto-Run
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
-        {/* Status Banner */}
-        {currentData && (
-          <div className="flex items-center gap-2 p-3 bg-card rounded-lg border border-border">
-            <div className="flex-1">
-              <span className="text-sm text-muted-foreground">Current Mode: </span>
-              <span className="font-semibold">
-                {mode === 'mars' ? 'Mars Habitat' : 'Earth Facility'}
-              </span>
-            </div>
-            <div className="flex-1">
-              <span className="text-sm text-muted-foreground">Stability Score: </span>
-              <span
-                className={`font-bold ${
-                  currentData.stabilityScore >= 80
-                    ? 'text-success'
-                    : currentData.stabilityScore >= 60
-                    ? 'text-warning'
-                    : 'text-destructive'
-                }`}
-              >
-                {currentData.stabilityScore.toFixed(1)}
-              </span>
-            </div>
-            <div className="flex-1 text-right">
-              <span className="text-sm text-muted-foreground">Status: </span>
-              <span
-                className={`font-semibold ${
-                  alerts.some(a => a.severity === 'critical')
-                    ? 'text-destructive'
-                    : alerts.length > 0
-                    ? 'text-warning'
-                    : 'text-success'
-                }`}
-              >
-                {alerts.some(a => a.severity === 'critical')
-                  ? 'CRITICAL'
-                  : alerts.length > 0
-                  ? 'WARNING'
-                  : 'NOMINAL'}
-              </span>
-            </div>
+      {/* Status Gauges */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <StatusGauge
+          label="Temperature"
+          value={currentReading?.temperature || 0}
+          unit="°C"
+          min={0}
+          max={50}
+          optimalMin={mode === "mars" ? 18 : 18}
+          optimalMax={mode === "mars" ? 24 : 26}
+          warningMin={mode === "mars" ? 15 : 15}
+          warningMax={mode === "mars" ? 30 : 32}
+        />
+        <StatusGauge
+          label={mode === "mars" ? "Oxygen" : "Air Quality"}
+          value={currentReading?.oxygen || 0}
+          unit={mode === "mars" ? "%" : "AQI"}
+          min={0}
+          max={mode === "mars" ? 25 : 100}
+          optimalMin={mode === "mars" ? 19.5 : 70}
+          optimalMax={mode === "mars" ? 23 : 100}
+          warningMin={mode === "mars" ? 18 : 50}
+          warningMax={mode === "mars" ? 24 : 100}
+        />
+        <StatusGauge
+          label="Power"
+          value={currentReading?.power || 0}
+          unit="%"
+          min={0}
+          max={100}
+          optimalMin={60}
+          optimalMax={100}
+          warningMin={30}
+          warningMax={100}
+        />
+        <StatusGauge
+          label="Humidity"
+          value={currentReading?.humidity || 0}
+          unit="%"
+          min={0}
+          max={100}
+          optimalMin={30}
+          optimalMax={70}
+          warningMin={20}
+          warningMax={80}
+        />
+        <StatusGauge
+          label="Stability"
+          value={currentReading?.stabilityScore || 0}
+          unit=""
+          min={0}
+          max={100}
+          optimalMin={60}
+          optimalMax={100}
+          warningMin={40}
+          warningMax={100}
+        />
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <EnvironmentChart data={data} mode={mode} />
+        </div>
+        <div className="space-y-6">
+          <AlertsPanel alerts={alerts} />
+          {advisory && <AdvisoryPanel advisory={advisory} />}
+        </div>
+      </div>
+
+      {/* Additional Metrics */}
+      {currentReading && (
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">Pressure</p>
+            <p className="text-2xl font-bold">{currentReading.pressure.toFixed(1)} {mode === 'mars' ? 'Pa' : 'hPa'}</p>
           </div>
-        )}
-      </header>
+          {mode === 'earth' && currentReading.co2_level && (
+            <div className="bg-card border border-border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">CO₂ Level</p>
+              <p className="text-2xl font-bold">{currentReading.co2_level.toFixed(0)} ppm</p>
+            </div>
+          )}
+          {mode === 'mars' && currentReading.radiation && (
+            <div className="bg-card border border-border rounded-lg p-4">
+              <p className="text-sm text-muted-foreground">Radiation</p>
+              <p className="text-2xl font-bold">{currentReading.radiation.toFixed(3)} Sv/h</p>
+            </div>
+          )}
+          {currentReading.is_crisis && (
+            <div className="bg-destructive/20 border border-destructive rounded-lg p-4 col-span-2">
+              <p className="text-sm text-destructive font-semibold">⚠ CRISIS MODE</p>
+              <p className="text-lg font-bold text-destructive">{currentReading.crisis_type?.replace('_', ' ').toUpperCase()}</p>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Gauges */}
-        {currentData && (
-          <>
-            <StatusGauge
-              label="Temperature"
-              value={currentData.temperature}
-              unit="°C"
-              min={0}
-              max={50}
-              optimalMin={mode === 'mars' ? 18 : 18}
-              optimalMax={mode === 'mars' ? 24 : 26}
-              warningMin={mode === 'mars' ? 15 : 15}
-              warningMax={mode === 'mars' ? 28 : 30}
-            />
-            <StatusGauge
-              label={mode === 'mars' ? 'Oxygen Level' : 'Air Quality'}
-              value={currentData.oxygen}
-              unit={mode === 'mars' ? '%' : 'AQI'}
-              min={0}
-              max={mode === 'mars' ? 25 : 100}
-              optimalMin={mode === 'mars' ? 19.5 : 70}
-              optimalMax={mode === 'mars' ? 23 : 100}
-              warningMin={mode === 'mars' ? 18 : 50}
-              warningMax={mode === 'mars' ? 24 : 100}
-            />
-            <StatusGauge
-              label="Power Reserve"
-              value={currentData.power}
-              unit="%"
-              min={0}
-              max={100}
-              optimalMin={60}
-              optimalMax={100}
-              warningMin={30}
-              warningMax={100}
-            />
-          </>
-        )}
+      <div className="mt-8">
+        <MissionLog entries={alerts.slice(0, 8).map(a => ({
+          timestamp: a.timestamp,
+          message: a.message,
+          type: a.severity as 'info' | 'warning' | 'critical'
+        }))} />
       </div>
-
-      {/* Chart */}
-      <div className="mb-6">
-        <EnvironmentChart data={data} mode={mode} />
-      </div>
-
-      {/* Alerts and Advisory */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <AlertsPanel alerts={alerts} />
-        <AdvisoryPanel advisory={advisory} />
-      </div>
-
-      {/* Mission Log */}
-      <MissionLog entries={missionLog} />
     </div>
   );
 };

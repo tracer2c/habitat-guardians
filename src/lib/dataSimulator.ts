@@ -1,11 +1,19 @@
 export type HabitatMode = 'mars' | 'earth';
 
 export interface EnvironmentalData {
+  id?: string;
   timestamp: Date;
+  mode: HabitatMode;
   temperature: number;
-  oxygen: number; // Mars: O2 %, Earth: Air Quality Index
-  power: number; // % available
+  oxygen: number;
+  power: number;
+  humidity: number;
+  pressure: number;
+  co2_level: number | null;
+  radiation: number | null;
   stabilityScore: number;
+  is_crisis?: boolean;
+  crisis_type?: string | null;
 }
 
 export interface Alert {
@@ -52,59 +60,6 @@ export class HabitatSimulator {
     }
   }
 
-  generateData(): EnvironmentalData {
-    // Introduce crisis events randomly
-    if (!this.crisisMode && Math.random() < 0.005) {
-      this.crisisMode = true;
-      this.crisisTimer = 20 + Math.floor(Math.random() * 20);
-    }
-
-    if (this.crisisMode) {
-      this.crisisTimer--;
-      if (this.crisisTimer <= 0) {
-        this.crisisMode = false;
-      }
-    }
-
-    // Add trending behavior
-    this.trendOffset += (Math.random() - 0.5) * 0.5;
-    this.trendOffset = Math.max(-5, Math.min(5, this.trendOffset));
-
-    // Generate values with noise and crisis impacts
-    let temperature = this.baseTemp + this.trendOffset + (Math.random() - 0.5) * 2;
-    let oxygen = this.baseOxygen + this.trendOffset * 0.5 + (Math.random() - 0.5) * 3;
-    let power = this.basePower + this.trendOffset * 2 + (Math.random() - 0.5) * 5;
-
-    if (this.crisisMode) {
-      const crisisType = Math.floor(Math.random() * 3);
-      if (crisisType === 0) {
-        // Oxygen crisis
-        oxygen -= 10 + Math.random() * 5;
-      } else if (crisisType === 1) {
-        // Power crisis
-        power -= 15 + Math.random() * 10;
-      } else {
-        // Temperature spike
-        temperature += 8 + Math.random() * 7;
-      }
-    }
-
-    // Clamp values
-    temperature = Math.max(0, Math.min(50, temperature));
-    oxygen = Math.max(0, Math.min(this.mode === 'mars' ? 25 : 100, oxygen));
-    power = Math.max(0, Math.min(100, power));
-
-    // Calculate stability score (0-100)
-    const stabilityScore = this.calculateStability(temperature, oxygen, power);
-
-    return {
-      timestamp: new Date(),
-      temperature,
-      oxygen,
-      power,
-      stabilityScore,
-    };
-  }
 
   private calculateStability(temp: number, oxygen: number, power: number): number {
     let score = 100;

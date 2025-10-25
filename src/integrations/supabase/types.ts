@@ -14,7 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      environmental_readings: {
+        Row: {
+          co2_level: number | null
+          created_at: string
+          crisis_type: string | null
+          humidity: number
+          id: string
+          is_crisis: boolean | null
+          mode: string
+          oxygen: number
+          power: number
+          pressure: number
+          radiation: number | null
+          stability_score: number
+          temperature: number
+          timestamp: string
+        }
+        Insert: {
+          co2_level?: number | null
+          created_at?: string
+          crisis_type?: string | null
+          humidity: number
+          id?: string
+          is_crisis?: boolean | null
+          mode: string
+          oxygen: number
+          power: number
+          pressure: number
+          radiation?: number | null
+          stability_score: number
+          temperature: number
+          timestamp?: string
+        }
+        Update: {
+          co2_level?: number | null
+          created_at?: string
+          crisis_type?: string | null
+          humidity?: number
+          id?: string
+          is_crisis?: boolean | null
+          mode?: string
+          oxygen?: number
+          power?: number
+          pressure?: number
+          radiation?: number | null
+          stability_score?: number
+          temperature?: number
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      system_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          message: string
+          metadata: Json | null
+          mode: string
+          reading_id: string | null
+          severity: string | null
+          timestamp: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          mode: string
+          reading_id?: string | null
+          severity?: string | null
+          timestamp?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          mode?: string
+          reading_id?: string | null
+          severity?: string | null
+          timestamp?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_events_reading_id_fkey"
+            columns: ["reading_id"]
+            isOneToOne: false
+            referencedRelation: "environmental_readings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

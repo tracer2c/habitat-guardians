@@ -12,6 +12,7 @@ export const EnvironmentChart = ({ data, mode }: EnvironmentChartProps) => {
     temperature: d.temperature,
     [mode === 'mars' ? 'oxygen' : 'airQuality']: d.oxygen,
     power: d.power,
+    humidity: d.humidity,
     stability: d.stabilityScore,
   }));
 
