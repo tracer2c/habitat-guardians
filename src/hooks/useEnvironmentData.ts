@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { EnvironmentalData, HabitatMode, Alert } from '@/lib/dataSimulator';
+import { EnvironmentalData, HabitatMode, Alert, Advisory } from '@/lib/dataSimulator';
 import { useToast } from '@/hooks/use-toast';
 
 export const useEnvironmentData = (
@@ -11,6 +11,7 @@ export const useEnvironmentData = (
   const [data, setData] = useState<EnvironmentalData[]>([]);
   const [currentReading, setCurrentReading] = useState<EnvironmentalData | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [advisory, setAdvisory] = useState<Advisory | null>(null);
   const { toast } = useToast();
 
   // Fetch initial data
@@ -78,6 +79,28 @@ export const useEnvironmentData = (
     }
   }, [mode]);
 
+  // Generate AI advisory
+  const generateAdvisory = useCallback(async (reading: EnvironmentalData, recentAlerts: Alert[]) => {
+    try {
+      const { data: advisoryData, error } = await supabase.functions.invoke('generate-advisory', {
+        body: {
+          mode,
+          currentReading: reading,
+          recentAlerts: recentAlerts.slice(0, 5), // Last 5 alerts for context
+        },
+      });
+
+      if (error) throw error;
+      
+      if (advisoryData?.advisory) {
+        setAdvisory(advisoryData.advisory);
+      }
+    } catch (error) {
+      console.error('Error generating advisory:', error);
+      // Don't show error toast for advisory generation to avoid spam
+    }
+  }, [mode]);
+
   // Trigger simulation
   const triggerSimulation = useCallback(async (location?: { latitude: number; longitude: number }) => {
     try {
@@ -139,6 +162,11 @@ export const useEnvironmentData = (
             return updated.slice(-50); // Keep last 50 readings
           });
           setCurrentReading(newReading);
+          
+          // Generate new advisory when readings update
+          if (alerts.length > 0 || newReading.stabilityScore < 80 || newReading.is_crisis) {
+            generateAdvisory(newReading, alerts);
+          }
         }
       )
       .subscribe();
@@ -175,7 +203,19 @@ export const useEnvironmentData = (
       supabase.removeChannel(readingsChannel);
       supabase.removeChannel(eventsChannel);
     };
-  }, [mode, fetchInitialData, fetchAlerts]);
+  }, [mode, fetchInitialData, fetchAlerts, generateAdvisory]);
+
+  // Generate advisory when readings or alerts change significantly
+  useEffect(() => {
+    if (currentReading && (alerts.length > 0 || currentReading.stabilityScore < 80 || currentReading.is_crisis)) {
+      // Debounce advisory generation to avoid too many calls
+      const timer = setTimeout(() => {
+        generateAdvisory(currentReading, alerts);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentReading, alerts, generateAdvisory]);
 
   // Simulation loop
   useEffect(() => {
@@ -192,6 +232,7 @@ export const useEnvironmentData = (
     data,
     currentReading,
     alerts,
+    advisory,
     triggerSimulation,
   };
 };

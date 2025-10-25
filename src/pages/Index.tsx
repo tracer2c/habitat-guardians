@@ -6,7 +6,7 @@ import { AdvisoryPanel } from "@/components/AdvisoryPanel";
 import { EnvironmentChart } from "@/components/EnvironmentChart";
 import { MissionLog } from "@/components/MissionLog";
 import { LocationSelector, LOCATIONS, Location } from "@/components/LocationSelector";
-import { HabitatMode, Advisory } from "@/lib/dataSimulator";
+import { HabitatMode } from "@/lib/dataSimulator";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Database } from "lucide-react";
@@ -14,10 +14,9 @@ import { Play, Pause, Database } from "lucide-react";
 const Index = () => {
   const [mode, setMode] = useState<HabitatMode>("mars");
   const [isRunning, setIsRunning] = useState(false);
-  const [advisory] = useState<Advisory | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<Location>(LOCATIONS[0]);
 
-  const { data, currentReading, alerts, triggerSimulation } = useEnvironmentData(
+  const { data, currentReading, alerts, advisory, triggerSimulation } = useEnvironmentData(
     mode, 
     isRunning,
     mode === 'earth' ? selectedLocation : undefined
