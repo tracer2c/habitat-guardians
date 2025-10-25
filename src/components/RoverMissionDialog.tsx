@@ -26,6 +26,8 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
   });
   const [roverStatus, setRoverStatus] = useState(rover.status);
   const missionStartedRef = useRef(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollToBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open && mission.status === 'in_progress' && !missionStartedRef.current) {
@@ -42,6 +44,13 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
       setHasStarted(false);
     }
   }, [open]);
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (scrollToBottomRef.current) {
+      scrollToBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logs.length]);
 
   const updateRoverData = async (battery: number, locationX: number, locationY: number, status: string) => {
     setCurrentBattery(battery);
@@ -120,7 +129,7 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
     });
   };
 
-  const missionLogs = [...logs].reverse();
+  const missionLogs = logs;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,34 +183,36 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Live Mission Log</h3>
+              <h3 className="text-sm font-semibold">Live Mission Feed</h3>
               <Badge variant="outline" className="text-xs">{missionLogs.length} entries</Badge>
             </div>
             <ScrollArea className="h-[320px] border rounded-lg p-3 bg-card/50">
               {missionLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Initializing mission...
-                </p>
+                <div className="text-sm text-muted-foreground text-center py-8">
+                  <div className="animate-pulse">Initializing mission systems...</div>
+                  <div className="text-xs mt-2">Waiting for rover telemetry...</div>
+                </div>
               ) : (
                 <div className="space-y-2">
-                  {missionLogs.map((log) => (
+                  {missionLogs.map((log, index) => (
                     <div
-                      key={log.id}
-                      className="flex items-start gap-3 p-2 rounded border border-border/50 hover:bg-secondary/30 transition-colors"
+                      key={`${log.id}-${index}`}
+                      className="flex items-start gap-3 p-2 rounded border border-border/50 hover:bg-secondary/30 transition-colors animate-in fade-in slide-in-from-left-2 duration-300"
                     >
                       <div className="text-xs text-muted-foreground font-mono mt-0.5 min-w-[80px]">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm">{log.message}</div>
+                        <div className="text-sm font-mono">{log.message}</div>
                         {log.metadata?.step && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            Step {log.metadata.step} of {log.metadata.total_steps}
+                            Step {log.metadata.step} of {log.metadata.total_steps} • Battery: {log.metadata.battery?.toFixed(1)}%
                           </div>
                         )}
                       </div>
                     </div>
                   ))}
+                  <div ref={scrollToBottomRef} />
                 </div>
               )}
             </ScrollArea>
