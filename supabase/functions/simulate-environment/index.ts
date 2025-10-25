@@ -120,21 +120,33 @@ function generateReading(mode: 'mars' | 'earth', state: SimulatorState) {
 }
 
 async function fetchRealWeather(latitude: number, longitude: number) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&temperature_unit=celsius`;
+  const apiKey = Deno.env.get('WEATHER_API_KEY');
+  if (!apiKey) {
+    throw new Error('WEATHER_API_KEY environment variable is not set');
+  }
+  
+  const url = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${latitude},${longitude}&aqi=yes`;
   
   try {
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`WeatherAPI error: ${response.statusText}`);
+    }
+    
     const data = await response.json();
     
+    console.log('WeatherAPI response:', JSON.stringify(data, null, 2));
+    
     return {
-      temperature: data.current.temperature_2m,
-      humidity: data.current.relative_humidity_2m,
-      pressure: data.current.surface_pressure,
-      windSpeed: data.current.wind_speed_10m,
+      temperature: data.current.temp_c,
+      humidity: data.current.humidity,
+      pressure: data.current.pressure_mb,
+      windSpeed: data.current.wind_kph,
+      airQualityIndex: data.current.air_quality?.['us-epa-index'] || 50, // EPA AQI scale 1-6
     };
   } catch (error) {
     console.error('Error fetching weather data:', error);
-    throw new Error('Failed to fetch weather data');
+    throw new Error('Failed to fetch weather data from WeatherAPI.com');
   }
 }
 
@@ -164,8 +176,10 @@ serve(async (req) => {
       // Fetch real weather data for Earth mode
       const weather = await fetchRealWeather(latitude, longitude);
       
-      // Calculate air quality proxy (higher wind can indicate better air circulation)
-      const airQuality = Math.min(100, 70 + (weather.windSpeed * 2));
+      // Convert EPA AQI (1-6 scale) to percentage (higher is better)
+      // 1=Good(100%), 2=Moderate(83%), 3=Unhealthy for sensitive(67%), 4=Unhealthy(50%), 5=Very Unhealthy(33%), 6=Hazardous(17%)
+      const airQualityMap: { [key: number]: number } = { 1: 100, 2: 83, 3: 67, 4: 50, 5: 33, 6: 17 };
+      const airQuality = airQualityMap[weather.airQualityIndex] || 70;
       
       // Calculate stability score based on weather conditions
       let stabilityScore = 100;
