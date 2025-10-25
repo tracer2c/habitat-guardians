@@ -227,7 +227,7 @@ const Index = () => {
       {!showMultiLocation && (
         <>
           <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 lg:items-start">
-            <div className="space-y-6 flex flex-col">
+            <div className="space-y-6">
               <EnvironmentChart data={data.slice(-20)} mode={mode} />
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-card border border-border rounded-lg p-4 flex flex-col justify-between min-h-[100px]">
@@ -255,8 +255,8 @@ const Index = () => {
               )}
             </div>
 
-            <div className="space-y-6 flex flex-col">
-              <RecommendationsPanel 
+            <div className="space-y-6">
+              <RecommendationsPanel
                 recommendations={recommendations}
                 onRefresh={() => currentReading && generateRecommendations(currentReading, alerts, predictions)}
                 isLoading={isGeneratingRecommendations}
