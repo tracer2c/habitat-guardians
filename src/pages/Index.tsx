@@ -5,6 +5,7 @@ import { AlertsPanel } from "@/components/AlertsPanel";
 import { AdvisoryPanel } from "@/components/AdvisoryPanel";
 import { EnvironmentChart } from "@/components/EnvironmentChart";
 import { MissionLog } from "@/components/MissionLog";
+import { LocationSelector, LOCATIONS, Location } from "@/components/LocationSelector";
 import { HabitatMode, Advisory } from "@/lib/dataSimulator";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,13 @@ const Index = () => {
   const [mode, setMode] = useState<HabitatMode>("mars");
   const [isRunning, setIsRunning] = useState(false);
   const [advisory] = useState<Advisory | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location>(LOCATIONS[0]);
 
-  const { data, currentReading, alerts, triggerSimulation } = useEnvironmentData(mode, isRunning);
+  const { data, currentReading, alerts, triggerSimulation } = useEnvironmentData(
+    mode, 
+    isRunning,
+    mode === 'earth' ? selectedLocation : undefined
+  );
 
   const handleModeChange = (newMode: HabitatMode) => {
     setMode(newMode);
@@ -31,19 +37,28 @@ const Index = () => {
             HABIT.AI
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Adaptive Habitat Intelligence System • Live Database
+            {mode === 'mars' 
+              ? 'Simulated Mars Habitat Environmental Control • Live Database'
+              : `Real-Time Weather Monitoring • ${selectedLocation.name}`
+            }
           </p>
         </div>
         <div className="flex items-center gap-4">
           <ModeToggle mode={mode} onModeChange={handleModeChange} />
+          {mode === 'earth' && (
+            <LocationSelector 
+              selectedLocation={selectedLocation} 
+              onLocationChange={setSelectedLocation} 
+            />
+          )}
           <Button
             variant="outline"
             size="sm"
-            onClick={triggerSimulation}
+            onClick={() => triggerSimulation(mode === 'earth' ? selectedLocation : undefined)}
             className="gap-2"
           >
             <Database className="h-4 w-4" />
-            Generate Data
+            {mode === 'earth' ? 'Refresh Weather' : 'Generate Data'}
           </Button>
           <Button
             variant={isRunning ? "destructive" : "default"}
@@ -74,10 +89,10 @@ const Index = () => {
           unit="°C"
           min={0}
           max={50}
-          optimalMin={mode === "mars" ? 18 : 18}
-          optimalMax={mode === "mars" ? 24 : 26}
-          warningMin={mode === "mars" ? 15 : 15}
-          warningMax={mode === "mars" ? 30 : 32}
+          optimalMin={mode === "mars" ? 18 : 15}
+          optimalMax={mode === "mars" ? 24 : 25}
+          warningMin={mode === "mars" ? 15 : 0}
+          warningMax={mode === "mars" ? 30 : 35}
         />
         <StatusGauge
           label={mode === "mars" ? "Oxygen" : "Air Quality"}
@@ -90,17 +105,19 @@ const Index = () => {
           warningMin={mode === "mars" ? 18 : 50}
           warningMax={mode === "mars" ? 24 : 100}
         />
-        <StatusGauge
-          label="Power"
-          value={currentReading?.power || 0}
-          unit="%"
-          min={0}
-          max={100}
-          optimalMin={60}
-          optimalMax={100}
-          warningMin={30}
-          warningMax={100}
-        />
+        {mode === "mars" && (
+          <StatusGauge
+            label="Power"
+            value={currentReading?.power || 0}
+            unit="%"
+            min={0}
+            max={100}
+            optimalMin={60}
+            optimalMax={100}
+            warningMin={30}
+            warningMax={100}
+          />
+        )}
         <StatusGauge
           label="Humidity"
           value={currentReading?.humidity || 0}
@@ -108,12 +125,12 @@ const Index = () => {
           min={0}
           max={100}
           optimalMin={30}
-          optimalMax={70}
+          optimalMax={60}
           warningMin={20}
-          warningMax={80}
+          warningMax={85}
         />
         <StatusGauge
-          label="Stability"
+          label={mode === "mars" ? "Stability" : "Weather Score"}
           value={currentReading?.stabilityScore || 0}
           unit=""
           min={0}

@@ -119,6 +119,25 @@ function generateReading(mode: 'mars' | 'earth', state: SimulatorState) {
   };
 }
 
+async function fetchRealWeather(latitude: number, longitude: number) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m&temperature_unit=celsius`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    return {
+      temperature: data.current.temperature_2m,
+      humidity: data.current.relative_humidity_2m,
+      pressure: data.current.surface_pressure,
+      windSpeed: data.current.wind_speed_10m,
+    };
+  } catch (error) {
+    console.error('Error fetching weather data:', error);
+    throw new Error('Failed to fetch weather data');
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -129,14 +148,64 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { mode = 'mars' } = await req.json();
+    const { mode = 'mars', latitude = 40.7128, longitude = -74.0060 } = await req.json();
     
     if (mode !== 'mars' && mode !== 'earth') {
       throw new Error('Invalid mode. Must be "mars" or "earth"');
     }
 
-    const state = mode === 'mars' ? marsState : earthState;
-    const reading = generateReading(mode, state);
+    let reading;
+
+    if (mode === 'mars') {
+      // Generate simulated Mars habitat data
+      const state = marsState;
+      reading = generateReading(mode, state);
+    } else {
+      // Fetch real weather data for Earth mode
+      const weather = await fetchRealWeather(latitude, longitude);
+      
+      // Calculate air quality proxy (higher wind can indicate better air circulation)
+      const airQuality = Math.min(100, 70 + (weather.windSpeed * 2));
+      
+      // Calculate stability score based on weather conditions
+      let stabilityScore = 100;
+      
+      // Temperature penalties (comfort range 15-25°C)
+      if (weather.temperature < 15 || weather.temperature > 25) {
+        stabilityScore -= Math.abs(weather.temperature - 20) * 2;
+      }
+      
+      // Humidity penalties (comfort range 30-60%)
+      if (weather.humidity < 30 || weather.humidity > 60) {
+        stabilityScore -= Math.abs(weather.humidity - 45) * 1.5;
+      }
+      
+      // Wind penalties (calm to moderate is ideal)
+      if (weather.windSpeed > 30) {
+        stabilityScore -= (weather.windSpeed - 30) * 2;
+      }
+      
+      // Pressure penalties (normal range 980-1020 hPa)
+      if (weather.pressure < 980 || weather.pressure > 1020) {
+        stabilityScore -= Math.abs(weather.pressure - 1000) * 0.5;
+      }
+      
+      stabilityScore = Math.max(0, Math.min(100, stabilityScore));
+      
+      reading = {
+        mode: 'earth',
+        temperature: Number(weather.temperature.toFixed(2)),
+        oxygen: Number(airQuality.toFixed(2)),
+        power: null,
+        humidity: Number(weather.humidity.toFixed(2)),
+        pressure: Number(weather.pressure.toFixed(2)),
+        co2_level: 415, // Current global average CO2 level
+        radiation: null,
+        stability_score: Number(stabilityScore.toFixed(2)),
+        is_crisis: false,
+        crisis_type: null,
+      };
+    }
 
     // Insert reading
     const { data: insertedReading, error: readingError } = await supabase
@@ -150,64 +219,101 @@ serve(async (req) => {
     // Generate events based on reading
     const events = [];
 
-    if (reading.stability_score < 40) {
-      events.push({
-        mode,
-        event_type: 'alert',
-        severity: 'critical',
-        title: 'Critical Stability',
-        message: 'Habitat stability severely compromised',
-        reading_id: insertedReading.id,
-      });
-    } else if (reading.stability_score < 60) {
-      events.push({
-        mode,
-        event_type: 'alert',
-        severity: 'warning',
-        title: 'Stability Warning',
-        message: 'Stability degrading',
-        reading_id: insertedReading.id,
-      });
-    }
+    if (mode === 'mars') {
+      // Mars habitat-specific alerts
+      if (reading.stability_score < 40) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'critical',
+          title: 'Critical Stability',
+          message: 'Habitat stability severely compromised',
+          reading_id: insertedReading.id,
+        });
+      } else if (reading.stability_score < 60) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'warning',
+          title: 'Stability Warning',
+          message: 'Stability degrading',
+          reading_id: insertedReading.id,
+        });
+      }
 
-    if (mode === 'mars' && reading.oxygen < 19.5) {
-      events.push({
-        mode,
-        event_type: 'alert',
-        severity: 'critical',
-        title: 'Oxygen Critical',
-        message: 'Oxygen levels below safe threshold',
-        reading_id: insertedReading.id,
-      });
-    } else if (mode === 'earth' && reading.oxygen < 60) {
-      events.push({
-        mode,
-        event_type: 'alert',
-        severity: 'critical',
-        title: 'Air Quality Critical',
-        message: 'Air quality dangerously low',
-        reading_id: insertedReading.id,
-      });
-    }
+      if (reading.oxygen < 19.5) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'critical',
+          title: 'Oxygen Critical',
+          message: 'Oxygen levels below safe threshold',
+          reading_id: insertedReading.id,
+        });
+      }
 
-    if (reading.power < 30) {
-      events.push({
-        mode,
-        event_type: 'alert',
-        severity: 'critical',
-        title: 'Power Critical',
-        message: 'Power reserves critically low',
-        reading_id: insertedReading.id,
-      });
-    } else if (reading.power < 50) {
-      events.push({
-        mode,
-        event_type: 'alert',
-        severity: 'warning',
-        title: 'Power Warning',
-        message: 'Power reserves declining',
-        reading_id: insertedReading.id,
-      });
+      if (reading.power !== null && reading.power < 30) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'critical',
+          title: 'Power Critical',
+          message: 'Power reserves critically low',
+          reading_id: insertedReading.id,
+        });
+      } else if (reading.power !== null && reading.power < 50) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'warning',
+          title: 'Power Warning',
+          message: 'Power reserves declining',
+          reading_id: insertedReading.id,
+        });
+      }
+    } else {
+      // Earth weather-specific alerts
+      if (reading.temperature < 0) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'warning',
+          title: 'Freezing Temperature',
+          message: `Temperature dropped to ${reading.temperature}°C`,
+          reading_id: insertedReading.id,
+        });
+      } else if (reading.temperature > 35) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'warning',
+          title: 'Extreme Heat',
+          message: `Temperature reached ${reading.temperature}°C`,
+          reading_id: insertedReading.id,
+        });
+      }
+
+      if (reading.humidity > 85) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'info',
+          title: 'High Humidity',
+          message: `Humidity at ${reading.humidity}% - rain likely`,
+          reading_id: insertedReading.id,
+        });
+      }
+
+      if (reading.pressure < 980) {
+        events.push({
+          mode,
+          event_type: 'alert',
+          severity: 'warning',
+          title: 'Low Pressure System',
+          message: 'Storm conditions possible',
+          reading_id: insertedReading.id,
+        });
+      }
     }
 
     if (events.length > 0) {

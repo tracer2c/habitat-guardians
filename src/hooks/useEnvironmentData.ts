@@ -3,7 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { EnvironmentalData, HabitatMode, Alert } from '@/lib/dataSimulator';
 import { useToast } from '@/hooks/use-toast';
 
-export const useEnvironmentData = (mode: HabitatMode, isRunning: boolean) => {
+export const useEnvironmentData = (
+  mode: HabitatMode, 
+  isRunning: boolean, 
+  location?: { latitude: number; longitude: number }
+) => {
   const [data, setData] = useState<EnvironmentalData[]>([]);
   const [currentReading, setCurrentReading] = useState<EnvironmentalData | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -75,10 +79,16 @@ export const useEnvironmentData = (mode: HabitatMode, isRunning: boolean) => {
   }, [mode]);
 
   // Trigger simulation
-  const triggerSimulation = useCallback(async () => {
+  const triggerSimulation = useCallback(async (location?: { latitude: number; longitude: number }) => {
     try {
+      const body: any = { mode };
+      if (location && mode === 'earth') {
+        body.latitude = location.latitude;
+        body.longitude = location.longitude;
+      }
+      
       const { error } = await supabase.functions.invoke('simulate-environment', {
-        body: { mode },
+        body,
       });
 
       if (error) throw error;
@@ -172,11 +182,11 @@ export const useEnvironmentData = (mode: HabitatMode, isRunning: boolean) => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
-      triggerSimulation();
+      triggerSimulation(location);
     }, 2000); // Every 2 seconds
 
     return () => clearInterval(interval);
-  }, [isRunning, triggerSimulation]);
+  }, [isRunning, triggerSimulation, location]);
 
   return {
     data,

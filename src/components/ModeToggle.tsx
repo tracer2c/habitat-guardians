@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Rocket, Building2 } from "lucide-react";
+import { Rocket, Globe } from "lucide-react";
 import { HabitatMode } from "@/lib/dataSimulator";
 
 interface ModeToggleProps {
@@ -17,7 +17,7 @@ export const ModeToggle = ({ mode, onModeChange }: ModeToggleProps) => {
         className="gap-2"
       >
         <Rocket className="h-4 w-4" />
-        Mars Mode
+        Mars Habitat
       </Button>
       <Button
         variant={mode === 'earth' ? 'default' : 'ghost'}
@@ -25,8 +25,8 @@ export const ModeToggle = ({ mode, onModeChange }: ModeToggleProps) => {
         onClick={() => onModeChange('earth')}
         className="gap-2"
       >
-        <Building2 className="h-4 w-4" />
-        Earth Mode
+        <Globe className="h-4 w-4" />
+        Earth Weather
       </Button>
     </div>
   );
