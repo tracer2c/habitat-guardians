@@ -15,6 +15,15 @@ export const RoverActivityLog = () => {
   // Get completed missions
   const completedMissions = missions.filter(m => m.status === 'completed');
   
+  // Filter logs to only show mission-level events (not detailed step-by-step logs)
+  const missionLevelLogs = logs.filter(log => {
+    // Only show logs that indicate mission completion or assignment
+    const message = log.message.toLowerCase();
+    return message.includes('completed mission') || 
+           message.includes('returning to base') ||
+           message.includes('received mission assignment');
+  });
+  
   // Group completed missions by rover
   const missionsByRover = completedMissions.reduce((acc, mission) => {
     if (mission.assigned_to) {
@@ -47,7 +56,7 @@ export const RoverActivityLog = () => {
       <CardHeader className="bg-secondary/30">
         <CardTitle className="flex items-center gap-2 font-mono text-base tracking-wider">
           <Activity className="h-5 w-5 text-primary" />
-          [ROVER ACTIVITY LOG]
+          ROVER ACTIVITY LOG
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
@@ -100,17 +109,17 @@ export const RoverActivityLog = () => {
               </div>
             )}
 
-            {/* Recent Activity Logs */}
+            {/* Recent Mission-Level Activity */}
             <div className="space-y-3">
               <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                Recent Activity
+                Mission Updates
               </h3>
-              {logs.length === 0 ? (
+              {missionLevelLogs.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8 font-mono">
-                  [NO ACTIVITY DETECTED]
+                  [NO MISSION UPDATES]
                 </p>
               ) : (
-                logs.map((log) => (
+                missionLevelLogs.map((log) => (
                   <div
                     key={log.id}
                     className="flex items-start gap-3 p-3 rounded-lg border border-primary/20 bg-secondary/20 hover:bg-secondary/40 transition-colors"
