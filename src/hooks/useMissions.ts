@@ -7,7 +7,7 @@ export interface Mission {
   description: string | null;
   priority: 'critical' | 'high' | 'medium' | 'low';
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  category: 'rover' | 'habitat' | 'science' | 'maintenance';
+  category: 'rover' | 'habitat' | 'science' | 'maintenance' | 'human';
   assigned_to: string | null;
   deadline: string | null;
   estimated_duration: number | null;
@@ -93,7 +93,7 @@ export const useMissions = () => {
   }, []);
 
   const createMission = async (mission: Omit<Mission, 'id' | 'created_at' | 'completed_at'>) => {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('mars_missions')
       .insert([mission])
       .select()
@@ -101,10 +101,11 @@ export const useMissions = () => {
 
     if (error) {
       console.error('Error creating mission:', error);
-      return null;
+      return false;
     }
 
-    return data;
+    await fetchMissions();
+    return true;
   };
 
   const updateMission = async (id: string, updates: Partial<Mission>) => {

@@ -6,16 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { MissionCard } from "@/components/MissionCard";
 import { RoverStatusCard } from "@/components/RoverStatusCard";
 import { RoverMissionDialog } from "@/components/RoverMissionDialog";
+import { NewMissionDialog } from "@/components/NewMissionDialog";
 import { useMissions, Mission, Rover } from "@/hooks/useMissions";
 import { Plus, Rocket, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 export const MissionControlPanel = () => {
-  const { missions, rovers, isLoading, updateMission } = useMissions();
+  const { missions, rovers, isLoading, updateMission, createMission } = useMissions();
   const [filter, setFilter] = useState<string>('all');
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
   const [selectedRover, setSelectedRover] = useState<Rover | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [newMissionDialogOpen, setNewMissionDialogOpen] = useState(false);
 
   const handleStart = async (id: string) => {
     const mission = missions.find(m => m.id === id);
@@ -82,30 +84,31 @@ export const MissionControlPanel = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="flex items-center gap-2">
-              <Rocket className="h-5 w-5" />
-              Mission Control
-            </CardTitle>
-            <div className="flex gap-2">
-              <Badge variant="default">
-                <Activity className="h-3 w-3 mr-1" />
-                {activeMissionsCount} Active
-              </Badge>
-              <Badge variant="secondary">
-                {pendingMissionsCount} Pending
-              </Badge>
+    <>
+      <Card className="border-primary/20">
+        <CardHeader className="bg-secondary/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CardTitle className="flex items-center gap-2 font-mono text-base tracking-wider">
+                <Rocket className="h-5 w-5 text-primary" />
+                [MISSION CONTROL]
+              </CardTitle>
+              <div className="flex gap-2">
+                <Badge variant="default" className="font-mono">
+                  <Activity className="h-3 w-3 mr-1" />
+                  {activeMissionsCount} ACTIVE
+                </Badge>
+                <Badge variant="secondary" className="font-mono">
+                  {pendingMissionsCount} PENDING
+                </Badge>
+              </div>
             </div>
+            <Button size="sm" variant="outline" onClick={() => setNewMissionDialogOpen(true)} className="font-mono">
+              <Plus className="h-4 w-4 mr-2" />
+              New Mission
+            </Button>
           </div>
-          <Button size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            New Mission
-          </Button>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent>
         <Tabs defaultValue="missions" className="space-y-4">
           <TabsList>
@@ -174,14 +177,21 @@ export const MissionControlPanel = () => {
         </Tabs>
       </CardContent>
 
-      {selectedMission && selectedRover && (
-        <RoverMissionDialog
-          mission={selectedMission}
-          rover={selectedRover}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-        />
-      )}
-    </Card>
+        {selectedMission && selectedRover && (
+          <RoverMissionDialog
+            mission={selectedMission}
+            rover={selectedRover}
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+          />
+        )}
+      </Card>
+
+      <NewMissionDialog
+        open={newMissionDialogOpen}
+        onOpenChange={setNewMissionDialogOpen}
+        onCreateMission={createMission}
+      />
+    </>
   );
 };
