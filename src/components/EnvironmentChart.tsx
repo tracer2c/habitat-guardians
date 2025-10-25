@@ -17,7 +17,7 @@ export const EnvironmentChart = ({ data, mode }: EnvironmentChartProps) => {
   }));
 
   return (
-    <div className="w-full h-[400px] bg-card rounded-lg border border-border p-4">
+    <div className="w-full h-[350px] lg:h-[400px] xl:h-[450px] bg-card rounded-lg border border-border p-4">
       <h3 className="text-lg font-semibold mb-4">Environmental Telemetry</h3>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>
