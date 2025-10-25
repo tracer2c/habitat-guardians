@@ -110,9 +110,14 @@ export const RoverMissionDialog = ({ mission, rover, open, onOpenChange }: Rover
       });
     }
     
-    // Mission complete - return to idle/charging
+    // Mission complete - return to idle/charging and clear task
     const finalStatus = currentBatteryLevel < 30 ? 'charging' : 'idle';
     await updateRoverData(currentBatteryLevel, rover.location_x || 0, rover.location_y || 0, finalStatus);
+    
+    // Clear the current task ID
+    await updateRoverStatus(rover.rover_id, {
+      current_task_id: null
+    });
     
     // Add completion log to main activity log
     await createLog({

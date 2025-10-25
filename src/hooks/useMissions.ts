@@ -51,6 +51,20 @@ export const useMissions = () => {
 
     if (!error && data) {
       setRovers(data as Rover[]);
+      
+      // Auto-clear task IDs for idle/charging rovers (cleanup stuck assignments)
+      const stuckRovers = (data as Rover[]).filter(r => 
+        (r.status === 'idle' || r.status === 'charging') && r.current_task_id !== null
+      );
+      
+      if (stuckRovers.length > 0) {
+        for (const rover of stuckRovers) {
+          await supabase
+            .from('rover_status')
+            .update({ current_task_id: null })
+            .eq('rover_id', rover.rover_id);
+        }
+      }
     }
   };
 

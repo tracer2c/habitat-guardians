@@ -23,10 +23,14 @@ export const MissionControlPanel = () => {
     const mission = missions.find(m => m.id === id);
     if (!mission) return;
 
-    // Find an available rover
-    const availableRover = rovers.find(r => r.status === 'idle' || r.status === 'active');
+    // Find an available rover (idle or charging, not active on another mission)
+    const availableRover = rovers.find(r => 
+      (r.status === 'idle' || r.status === 'charging') && 
+      !r.current_task_id
+    );
+    
     if (!availableRover) {
-      toast.error("No rovers available");
+      toast.error("No rovers available - all rovers are busy or on missions");
       return;
     }
 
