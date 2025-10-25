@@ -8,16 +8,16 @@ export interface Location {
 }
 
 export const LOCATIONS: Location[] = [
-  { name: "New York, USA", latitude: 40.7128, longitude: -74.0060 },
-  { name: "London, UK", latitude: 51.5074, longitude: -0.1278 },
-  { name: "Tokyo, Japan", latitude: 35.6762, longitude: 139.6503 },
-  { name: "Sydney, Australia", latitude: -33.8688, longitude: 151.2093 },
-  { name: "Mumbai, India", latitude: 19.0760, longitude: 72.8777 },
-  { name: "São Paulo, Brazil", latitude: -23.5505, longitude: -46.6333 },
-  { name: "Dubai, UAE", latitude: 25.2048, longitude: 55.2708 },
-  { name: "Paris, France", latitude: 48.8566, longitude: 2.3522 },
-  { name: "Singapore", latitude: 1.3521, longitude: 103.8198 },
-  { name: "Los Angeles, USA", latitude: 34.0522, longitude: -118.2437 },
+  { name: "Kennedy Space Center, FL", latitude: 28.5729, longitude: -80.6490 },
+  { name: "Johnson Space Center, TX", latitude: 29.5603, longitude: -95.0894 },
+  { name: "Marshall Space Flight Center, AL", latitude: 34.6419, longitude: -86.6856 },
+  { name: "Goddard Space Flight Center, MD", latitude: 38.9916, longitude: -76.8479 },
+  { name: "Ames Research Center, CA", latitude: 37.4095, longitude: -122.0626 },
+  { name: "Glenn Research Center, OH", latitude: 41.4132, longitude: -81.8622 },
+  { name: "Langley Research Center, VA", latitude: 37.0956, longitude: -76.3866 },
+  { name: "Stennis Space Center, MS", latitude: 30.3657, longitude: -89.6042 },
+  { name: "Armstrong Flight Research Center, CA", latitude: 34.9584, longitude: -117.8847 },
+  { name: "Jet Propulsion Laboratory, CA", latitude: 34.2011, longitude: -118.1718 },
 ];
 
 interface LocationSelectorProps {
@@ -36,8 +36,8 @@ export const LocationSelector = ({ selectedLocation, onLocationChange }: Locatio
           if (location) onLocationChange(location);
         }}
       >
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Select location" />
+        <SelectTrigger className="w-[280px]">
+          <SelectValue placeholder="Select NASA Center" />
         </SelectTrigger>
         <SelectContent>
           {LOCATIONS.map((location) => (

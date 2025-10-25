@@ -44,7 +44,7 @@ const Index = () => {
           <p className="text-sm text-muted-foreground mt-1">
             {mode === 'mars' 
               ? 'Simulated Mars Habitat Environmental Control • Live Database'
-              : `Real-Time Weather Monitoring • ${selectedLocation.name}`
+              : `Real-Time Weather at NASA ${selectedLocation.name.split(',')[0]}`
             }
           </p>
           {mode === 'earth' && currentReading && (
